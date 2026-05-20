@@ -6,9 +6,11 @@ This repository must not include real face samples, personal photos, private cam
 
 ## Privacy
 
-PiSight-X is designed for local processing. The default enrollment flow stores embeddings rather than cropped face images, but embeddings and labels are still biometric-derived sensitive artifacts and should remain on the local device unless the user explicitly exports them.
+PiSight-Omni is designed for local processing. The default enrollment flow stores embeddings rather than cropped face images, but embeddings and labels are still biometric-derived sensitive artifacts and should remain on the local device unless the user explicitly exports them.
 
-The optional `autonom` command can send encoded frames to the configured VLM endpoint. Use a local endpoint when privacy requirements do not allow frames to leave the device or local network.
+The optional `autonom` and `omni` commands can send encoded frames to the configured VLM endpoint. Use a local endpoint when privacy requirements do not allow frames to leave the device or local network.
+
+The optional `omni` MQTT publisher is disabled by default and dry-run by default. Do not publish real names, private scene details, raw frames or sensitive labels to shared brokers.
 
 ## Responsible Usage
 
@@ -18,7 +20,7 @@ Face recognition systems can create privacy and consent risks. Use this project 
 
 This project should not be used as a standalone security authentication system without additional controls such as liveness detection, access control review and formal risk assessment.
 
-Agent actions are advisory by default. The current implementation does not execute GPIO, locks, relays, Telegram messages or other physical/network actions.
+Agent actions are advisory by default. The current implementation does not execute GPIO, locks, relays, Telegram messages, generated Python code or other physical actions.
 
 ## Reporting a Vulnerability
 

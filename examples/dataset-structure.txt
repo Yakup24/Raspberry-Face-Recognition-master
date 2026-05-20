@@ -3,4 +3,4 @@ data/
     faiss.index
     labels.json
 
-Legacy image datasets are not created by the default PiSight-X collect/enroll flow.
+Legacy image datasets are not created by the default PiSight-Omni collect/enroll flow.

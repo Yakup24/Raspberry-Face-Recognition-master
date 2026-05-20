@@ -58,6 +58,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.interval_frames, 5)
         self.assertEqual(args.max_frames, 10)
 
+    def test_parser_accepts_omni_arguments(self):
+        parser = cli.build_parser()
+
+        args = parser.parse_args(
+            [
+                "--config",
+                "config.yaml",
+                "omni",
+                "--no-window",
+                "--interval-frames",
+                "5",
+                "--max-frames",
+                "10",
+                "--device-id",
+                "camera-alpha",
+                "--swarm",
+            ]
+        )
+
+        self.assertEqual(args.command, "omni")
+        self.assertTrue(args.no_window)
+        self.assertEqual(args.interval_frames, 5)
+        self.assertEqual(args.max_frames, 10)
+        self.assertEqual(args.device_id, "camera-alpha")
+        self.assertTrue(args.swarm)
+
     def test_help_command_exits_successfully(self):
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
@@ -65,7 +91,7 @@ class CliTests(unittest.TestCase):
                 cli.main(["--help"])
 
         self.assertEqual(exit_info.exception.code, 0)
-        self.assertIn("PiSight-X Raspberry Pi face embedding and agentic vision toolkit", stdout.getvalue())
+        self.assertIn("PiSight-Omni Raspberry Pi face embedding and agentic vision toolkit", stdout.getvalue())
 
     def test_recognize_reports_missing_vectors_before_opening_camera(self):
         with tempfile.TemporaryDirectory() as temp_dir:

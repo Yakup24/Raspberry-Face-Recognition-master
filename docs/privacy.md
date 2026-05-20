@@ -1,6 +1,6 @@
 # Privacy
 
-PiSight-X minimizes raw image storage, but it does not eliminate biometric risk.
+PiSight-Omni minimizes raw image storage, but it does not eliminate biometric risk.
 
 ## 1. Local-only processing
 
@@ -23,9 +23,11 @@ Embeddings are biometric-derived data. They are not raw photos, but they should 
 
 ## 4. Remote upload
 
-PiSight-X has no remote upload workflow by default. Any future cloud storage, dashboard sync or remote logging should be reviewed as a privacy-impacting feature.
+PiSight-Omni has no remote upload workflow by default. Any future cloud storage, dashboard sync or remote logging should be reviewed as a privacy-impacting feature.
 
-The `autonom` command is an explicit opt-in exception: it can send encoded frames to the configured VLM endpoint for scene reasoning. Use a local endpoint through `agent.base_url` when camera frames must remain on the device or local network.
+The `autonom` and `omni` commands are explicit opt-in exceptions: they can send encoded frames to the configured VLM endpoint for scene reasoning. Use a local endpoint through `agent.base_url` when camera frames must remain on the device or local network.
+
+`omni` can also publish local telemetry to an MQTT broker when explicitly enabled. Swarm telemetry should not include real names, private scene descriptions or raw images.
 
 ## 5. Personal data in labels and logs
 
@@ -40,6 +42,7 @@ Do not commit:
 - screenshots from real environments
 - FAISS indexes created from real people
 - VLM request/response logs that contain private scene context
+- MQTT telemetry containing private scene context
 - labels that identify real people
 - secrets, API keys or environment files
 
@@ -49,4 +52,6 @@ Users are responsible for notice, consent, retention, deletion and local file pr
 
 ## 8. Security warning
 
-PiSight-X is not a standalone security authentication system. Critical access decisions require liveness detection, access policy, encrypted storage, audit logging and formal risk assessment.
+PiSight-Omni is not a standalone security authentication system. Critical access decisions require liveness detection, access policy, encrypted storage, audit logging and formal risk assessment.
+
+The Omni visual signal summary is not a medical, stress, heart-rate or liveness detector. It should be treated as non-clinical debugging telemetry only.

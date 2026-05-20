@@ -1,4 +1,4 @@
-"""Agentic vision layer for PiSight-X.
+"""Agentic vision layer for PiSight-Omni.
 
 The agent is intentionally advisory by default. It can ask a Vision Language
 Model for a scene decision, but physical actions are not executed unless a
@@ -148,7 +148,7 @@ class AutonomousAgent:
     def _build_prompt(self, faiss_results: Iterable[Mapping[str, Any]]) -> str:
         detected_people = format_detected_people(faiss_results)
         return (
-            "You are an advisory local security assistant for PiSight-X.\n"
+            "You are an advisory local security assistant for PiSight-Omni.\n"
             "Use the image and local FAISS face-vector matches to describe the scene and choose one action.\n"
             f"Local face-vector matches: [{detected_people}]\n\n"
             "Rules:\n"

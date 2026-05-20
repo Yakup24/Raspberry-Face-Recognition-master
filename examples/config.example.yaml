@@ -28,3 +28,11 @@ agent:
   interval_frames: 30
   max_tokens: 300
   action_mode: "dry_run"
+
+omni:
+  device_id: "node-001"
+  swarm_enabled: false
+  swarm_host: "localhost"
+  swarm_port: 1883
+  swarm_topic: "pisight/omni/swarm"
+  swarm_dry_run: true

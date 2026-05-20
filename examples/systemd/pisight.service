@@ -1,5 +1,5 @@
 [Unit]
-Description=PiSight-X Local Face Embedding Service
+Description=PiSight-Omni Local Face Embedding Service
 After=network.target
 
 [Service]

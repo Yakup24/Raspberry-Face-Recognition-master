@@ -1,6 +1,6 @@
 # Enrollment Flow
 
-PiSight-X replaces offline image-dataset training with live vector enrollment.
+PiSight-Omni replaces offline image-dataset training with live vector enrollment.
 
 ## 1. What changed
 
@@ -10,7 +10,7 @@ The previous OpenCV LBPH flow used:
 collect images -> train model.yml -> recognize
 ```
 
-The default PiSight-X flow is now:
+The default PiSight-Omni flow is now:
 
 ```text
 collect/enroll embeddings -> FAISS index -> recognize

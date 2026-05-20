@@ -14,6 +14,7 @@ from .config import load_config
 from .dataset import (
     DatasetError,
 )
+from .omni_core import OmniContextBuilder, SwarmPublisher
 from .vectordb import FaceVectorDB, require_faiss
 from .vision import (
     create_deep_detector,
@@ -134,7 +135,7 @@ def command_collect(args: argparse.Namespace) -> int:
                 )
 
             if show_window:
-                cv2.imshow("PiSight-X enrollment", frame)
+                cv2.imshow("PiSight-Omni enrollment", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
     finally:
@@ -149,7 +150,7 @@ def command_collect(args: argparse.Namespace) -> int:
 
 def command_train(args: argparse.Namespace) -> int:
     _load(args)
-    print("train is not required in the PiSight-X embedding pipeline.")
+    print("train is not required in the PiSight-Omni embedding pipeline.")
     print("Use `collect --name <demo-user>` to enroll vectors, then `recognize`.")
     return 0
 
@@ -166,7 +167,7 @@ def command_recognize(args: argparse.Namespace) -> int:
     camera = _open_camera(cv2, config.camera_source, config)
     show_window = config.display and not args.no_window
 
-    print("PiSight-X recognition started")
+    print("PiSight-Omni recognition started")
     print("press q to stop" if show_window else "press Ctrl+C to stop")
 
     try:
@@ -195,7 +196,7 @@ def command_recognize(args: argparse.Namespace) -> int:
                     )
 
             if show_window:
-                cv2.imshow("PiSight-X", frame)
+                cv2.imshow("PiSight-Omni", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
     finally:
@@ -206,7 +207,7 @@ def command_recognize(args: argparse.Namespace) -> int:
     return 0
 
 
-def command_autonom(args: argparse.Namespace) -> int:
+def _agent_loop(args: argparse.Namespace, *, omni_mode: bool = False) -> int:
     config = _load(args)
     cv2 = require_cv2()
     device = get_device()
@@ -221,6 +222,18 @@ def command_autonom(args: argparse.Namespace) -> int:
         raise ValueError("interval-frames must be greater than zero.")
     if max_frames is not None and max_frames < 1:
         raise ValueError("max-frames must be greater than zero.")
+    swarm_enabled = bool(getattr(args, "swarm", False) or config.omni_swarm_enabled)
+    swarm_live = bool(getattr(args, "swarm_live", False))
+    swarm = SwarmPublisher(
+        enabled=swarm_enabled,
+        dry_run=False if swarm_live else config.omni_swarm_dry_run,
+        broker_host=config.omni_swarm_host,
+        broker_port=config.omni_swarm_port,
+        topic=config.omni_swarm_topic,
+    )
+    omni_context = None
+    if omni_mode:
+        omni_context = OmniContextBuilder(device_id=getattr(args, "device_id", None) or config.omni_device_id)
     agent = AutonomousAgent(
         base_url=config.agent_base_url or None,
         model_name=args.model or config.agent_model,
@@ -228,9 +241,13 @@ def command_autonom(args: argparse.Namespace) -> int:
         action_mode=config.agent_action_mode,
     )
 
-    print("PiSight-Omni autonomous agent started")
+    mode_label = "PiSight-Omni advisory agent" if omni_mode else "PiSight-Omni autonomous agent"
+    print(f"{mode_label} started")
     print("VLM analysis is opt-in and may send frames to the configured model endpoint.")
     print("actions are advisory only; GPIO/locks/network alerts are not executed")
+    if omni_mode:
+        print(f"omni device_id={omni_context.device_id if omni_context else config.omni_device_id}")
+        print(f"swarm telemetry={swarm.status}")
 
     frame_counter = 0
     try:
@@ -274,8 +291,24 @@ def command_autonom(args: argparse.Namespace) -> int:
                     )
 
             if faiss_results and frame_counter % interval_frames == 0:
+                telemetry = None
+                if omni_context is not None:
+                    telemetry = omni_context.build(
+                        frame=frame,
+                        faiss_results=faiss_results,
+                        frame_index=frame_counter,
+                        unknown_label=config.unknown_label,
+                        swarm_status=swarm.status,
+                    )
+                    if config.debug or not show_window:
+                        print(f"[OMNI][TELEMETRY] {json.dumps(telemetry.to_dict(), sort_keys=True)}")
                 try:
-                    agent.analyze_scene_and_act(frame, faiss_results)
+                    decision = agent.analyze_scene_and_act(frame, faiss_results)
+                    if telemetry is not None and decision.action in {"ALERT", "LOCKDOWN"}:
+                        payload = telemetry.to_dict()
+                        payload["agent_action"] = decision.action
+                        payload["agent_message"] = decision.message
+                        swarm.publish_alert(payload)
                 except AgentError as exc:
                     print(f"agent warning: {exc}", file=sys.stderr)
 
@@ -294,8 +327,16 @@ def command_autonom(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_autonom(args: argparse.Namespace) -> int:
+    return _agent_loop(args, omni_mode=False)
+
+
+def command_omni(args: argparse.Namespace) -> int:
+    return _agent_loop(args, omni_mode=True)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="PiSight-X Raspberry Pi face embedding and agentic vision toolkit")
+    parser = argparse.ArgumentParser(description="PiSight-Omni Raspberry Pi face embedding and agentic vision toolkit")
     parser.add_argument("--config", default="config.json", help="Path to JSON or YAML configuration file")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -332,6 +373,16 @@ def build_parser() -> argparse.ArgumentParser:
     autonom.add_argument("--max-frames", type=int, default=None, help="Stop after N frames")
     autonom.add_argument("--model", default=None, help="Override the configured VLM model name")
     autonom.set_defaults(func=command_autonom)
+
+    omni = subparsers.add_parser("omni", help="Run PiSight-Omni advisory agent mode with local telemetry")
+    omni.add_argument("--no-window", action="store_true", help="Run without opening a preview window")
+    omni.add_argument("--interval-frames", type=int, default=None, help="Run VLM analysis every N frames")
+    omni.add_argument("--max-frames", type=int, default=None, help="Stop after N frames")
+    omni.add_argument("--model", default=None, help="Override the configured VLM model name")
+    omni.add_argument("--device-id", default=None, help="Override omni.device_id for telemetry")
+    omni.add_argument("--swarm", action="store_true", help="Enable swarm telemetry in dry-run mode unless --swarm-live is set")
+    omni.add_argument("--swarm-live", action="store_true", help="Allow MQTT publish to the configured broker; physical actions remain disabled")
+    omni.set_defaults(func=command_omni)
 
     return parser
 

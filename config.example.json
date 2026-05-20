@@ -17,5 +17,11 @@
   "agent_base_url": "",
   "agent_interval_frames": 30,
   "agent_max_tokens": 300,
-  "agent_action_mode": "dry_run"
+  "agent_action_mode": "dry_run",
+  "omni_device_id": "node-001",
+  "omni_swarm_enabled": false,
+  "omni_swarm_host": "localhost",
+  "omni_swarm_port": 1883,
+  "omni_swarm_topic": "pisight/omni/swarm",
+  "omni_swarm_dry_run": true
 }

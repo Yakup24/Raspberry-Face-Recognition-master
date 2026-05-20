@@ -1,0 +1,8 @@
+cp examples/config.example.yaml config.yaml
+
+# Advisory Omni loop with local telemetry and dry-run swarm output.
+pisight --config config.yaml omni --no-window --interval-frames 30 --swarm
+
+# Live MQTT publish is intentionally explicit and still does not execute
+# physical actions such as GPIO, locks, relays or notifications.
+pisight --config config.yaml omni --no-window --swarm --swarm-live

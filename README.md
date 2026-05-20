@@ -1,14 +1,18 @@
-# PiSight-X
+# PiSight-Omni
 
 [![CI](https://github.com/Yakup24/pisight/actions/workflows/ci.yml/badge.svg)](https://github.com/Yakup24/pisight/actions/workflows/ci.yml)
 
-PiSight-X is a Raspberry Pi oriented local face embedding and agentic vision toolkit. It uses OpenCV for camera I/O, facenet-pytorch for MTCNN face detection and 512-dimensional embeddings, FAISS for local vector search, and an optional VLM agent loop for scene-level reasoning.
+PiSight-Omni is a privacy-aware Raspberry Pi edge vision toolkit with local face embeddings, FAISS vector search, optional VLM scene reasoning, safe action boundaries and dry-run swarm telemetry hooks. It uses OpenCV for camera I/O, facenet-pytorch for MTCNN face detection and 512-dimensional embeddings, FAISS for local vector search, and an optional advisory agent loop for scene-level reasoning.
 
 The default workflow does not write cropped face images to `data/faces/`. Enrollment converts live camera frames into embeddings and stores a local FAISS index plus JSON label metadata.
 
+## Repository About
+
+Privacy-aware Raspberry Pi edge vision toolkit with local face embeddings, FAISS vector search, optional VLM scene reasoning and safe PiSight-Omni agent mode.
+
 ## Overview
 
-PiSight-X is designed for edge computer vision experiments where raw camera frames should stay on the device. The project is not a cloud recognition service and is not a security authentication product.
+PiSight-Omni is designed for edge computer vision experiments where raw camera frames should stay on the device by default. The project is not a cloud recognition service and is not a security authentication product.
 
 The current pipeline is:
 
@@ -21,6 +25,7 @@ Camera / Video Source
   -> Local Match Result
   -> Optional VLM Scene Reasoning
   -> Advisory Action Decision
+  -> Optional Dry-Run Swarm Telemetry
   -> Console / Optional Preview Window
 ```
 
@@ -45,8 +50,9 @@ Camera / Video Source
 | Detection | MTCNN through `facenet-pytorch` |
 | Embedding | `InceptionResnetV1(pretrained="vggface2")`, 512-dimensional vectors |
 | Search | FAISS `IndexFlatL2` local vector index |
-| Reasoning | Optional OpenAI/Ollama-compatible VLM analysis through `autonom` |
+| Reasoning | Optional OpenAI/Ollama-compatible VLM analysis through `autonom` or `omni` |
 | Actions | Dry-run action dispatcher; no GPIO, locks or alerts execute by default |
+| Omni layer | Local telemetry, visual signal summary and optional MQTT dry-run swarm publisher |
 | Privacy posture | No raw face crop storage in the default collect/enroll flow |
 | Compatibility | Legacy Haar/LBPH helper modules remain for older tests and migration context |
 | Operations | CLI, config files, systemd examples, doctor command and CI |
@@ -60,6 +66,7 @@ Camera / Video Source
 - Local FAISS index and JSON label metadata
 - Real-time recognition through vector nearest-neighbor search
 - Optional agentic `autonom` loop for Perception -> Reasoning -> Action demos
+- `omni` command with local telemetry and dry-run swarm output for multi-node experiments
 - `train` compatibility command that explains offline training is no longer required
 - JSON and YAML config support
 - Dataset/model audit command retained for legacy runtime hygiene checks
@@ -77,6 +84,7 @@ Camera / Video Source
 - FAISS CPU
 - OpenAI Python SDK for optional VLM reasoning
 - requests for future local agent integrations
+- paho-mqtt for optional PiSight-Omni swarm telemetry
 - pytest and ruff
 - systemd for Linux service deployment
 
@@ -90,7 +98,7 @@ Camera / Video Source
 ## Project Structure
 
 ```text
-raspberry_face_recognition/  CLI, config, vision, vector DB and compatibility helpers
+raspberry_face_recognition/  CLI, config, vision, vector DB, agent and Omni helpers
 pisight/                     Compatibility module for python -m pisight
 docs/                        Architecture, setup, privacy, testing and deployment notes
 examples/                    Placeholder config, commands, service file and console output
@@ -113,7 +121,7 @@ sudo apt install -y python3 python3-venv python3-pip python3-opencv python3-nump
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[deep,agent]"
+python -m pip install -e ".[deep,agent,omni]"
 cp config.example.yaml config.yaml
 ```
 
@@ -157,6 +165,14 @@ agent:
   interval_frames: 30
   max_tokens: 300
   action_mode: "dry_run"
+
+omni:
+  device_id: "node-001"
+  swarm_enabled: false
+  swarm_host: "localhost"
+  swarm_port: 1883
+  swarm_topic: "pisight/omni/swarm"
+  swarm_dry_run: true
 ```
 
 Notes:
@@ -168,6 +184,8 @@ Notes:
 - `runtime.save_unknown_faces` remains false by default and the current CLI does not save unknown face crops.
 - `agent.base_url` can point to an OpenAI-compatible local VLM endpoint. If it is empty, the OpenAI SDK default endpoint is used.
 - `agent.action_mode` is limited to `dry_run` or `disabled`; physical actions are not implemented.
+- `omni.swarm_enabled` is false by default. Even when enabled, `omni.swarm_dry_run` keeps MQTT output in dry-run mode unless explicitly changed in config or overridden with `--swarm-live`.
+- The visual signal summary in Omni mode is not a heart-rate, stress, liveness or health detector.
 
 ## Usage
 
@@ -209,6 +227,18 @@ pisight --config config.yaml autonom --no-window --interval-frames 30
 
 `autonom` sends selected frames to the configured VLM endpoint for scene reasoning. Use a local VLM endpoint if the reasoning step must remain on the device or local network.
 
+Run PiSight-Omni advisory mode with local telemetry and dry-run swarm output:
+
+```sh
+pisight --config config.yaml omni --no-window --interval-frames 30 --swarm
+```
+
+Allow live MQTT publishing only when the broker and privacy boundary are reviewed:
+
+```sh
+pisight --config config.yaml omni --no-window --swarm --swarm-live
+```
+
 Compatibility train command:
 
 ```sh
@@ -222,8 +252,10 @@ The command does not train an offline model in the embedding pipeline; it explai
 - Raw face crops are not written in the default `collect/enroll` flow.
 - FAISS index files and label metadata are local runtime artifacts.
 - Embeddings are biometric-derived data and should not be committed or published.
-- PiSight-X does not upload frames, embeddings or labels.
-- The `autonom` command is opt-in and may send encoded frames to the configured VLM provider.
+- PiSight-Omni does not upload frames, embeddings or labels in the default local recognition flow.
+- The `autonom` and `omni` commands are opt-in and may send encoded frames to the configured VLM provider.
+- The `omni` command can publish local telemetry to MQTT only when explicitly enabled.
+- The codebase does not execute model-generated Python code and does not control locks, relays, GPIO, alarms or access-control systems.
 - Do not use real names or real face data in public demos.
 - This project is not identity verification, surveillance infrastructure or access-control authentication.
 
@@ -243,6 +275,8 @@ CI intentionally avoids real camera access, real face images, private videos and
 - Deep face embeddings are heavier than Haar/LBPH on Raspberry Pi CPU.
 - FAISS nearest-neighbor distance is not a calibrated identity guarantee.
 - Embeddings reduce raw image exposure but remain sensitive.
+- Omni visual signal telemetry is a non-clinical debugging signal only.
+- Swarm telemetry is a transport hook, not distributed intelligence or autonomous enforcement.
 - Face recognition alone should not be used as a security verification system.
 - Lighting, camera quality, pose and occlusion can affect detection and embedding quality.
 
@@ -255,8 +289,10 @@ CI intentionally avoids real camera access, real face images, private videos and
 - Benchmark script with hardware metadata
 - Local-only dashboard
 - Edge accelerator notes for Jetson/Coral-class devices
-- Pluggable reviewed action adapters for notifications or hardware integrations
+- Reviewed action adapters for notifications or hardware integrations
+- Optional depth-estimation adapter with measured hardware notes
+- Local VLM deployment guide for private `omni` reasoning
 
 ## License
 
-PiSight-X is released under the MIT License. See [LICENSE](LICENSE).
+PiSight-Omni is released under the MIT License. See [LICENSE](LICENSE).

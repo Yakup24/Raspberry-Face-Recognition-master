@@ -42,6 +42,12 @@ class AppConfig:
     agent_interval_frames: int = 30
     agent_max_tokens: int = 300
     agent_action_mode: str = "dry_run"
+    omni_device_id: str = "node-001"
+    omni_swarm_enabled: bool = False
+    omni_swarm_host: str = "localhost"
+    omni_swarm_port: int = 1883
+    omni_swarm_topic: str = "pisight/omni/swarm"
+    omni_swarm_dry_run: bool = True
 
     @property
     def face_size(self) -> tuple[int, int]:
@@ -150,6 +156,7 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         runtime = _section(data, "runtime")
         embedding = _section(data, "embedding")
         agent = _section(data, "agent")
+        omni = _section(data, "omni")
     except ValueError as exc:
         return ConfigValidationResult(False, [str(exc)], warnings)
 
@@ -172,6 +179,7 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         "embedding.dim": embedding.get("dim"),
         "agent.interval_frames": agent.get("interval_frames"),
         "agent.max_tokens": agent.get("max_tokens"),
+        "omni.swarm_port": omni.get("swarm_port"),
         "min_neighbors": data.get("min_neighbors"),
         "min_face_size": data.get("min_face_size"),
     }
@@ -205,6 +213,8 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         "runtime.save_unknown_faces": runtime.get("save_unknown_faces"),
         "display": data.get("display"),
         "recognition.draw_bounding_boxes": recognition.get("draw_bounding_boxes"),
+        "omni.swarm_enabled": omni.get("swarm_enabled"),
+        "omni.swarm_dry_run": omni.get("swarm_dry_run"),
     }.items():
         if raw_value is None:
             continue
@@ -232,6 +242,14 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
     if action_mode not in {"dry_run", "disabled"}:
         errors.append("agent.action_mode must be either 'dry_run' or 'disabled'.")
 
+    for field_name, raw_value in {
+        "omni.device_id": omni.get("device_id"),
+        "omni.swarm_host": omni.get("swarm_host"),
+        "omni.swarm_topic": omni.get("swarm_topic"),
+    }.items():
+        if raw_value is not None and not str(raw_value).strip():
+            errors.append(f"{field_name} must not be empty.")
+
     if paths.get("log_dir") is not None:
         warnings.append("log_dir is accepted for deployment layouts; current CLI output is stdout/stderr.")
 
@@ -252,6 +270,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
     recognition = _section(data, "recognition")
     runtime = _section(data, "runtime")
     agent = _section(data, "agent")
+    omni = _section(data, "omni")
 
     data_dir_value = paths.get("data_dir", data.get("data_dir", AppConfig.data_dir))
     faces_dir_value = paths.get(
@@ -313,4 +332,16 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         agent_interval_frames=int(agent.get("interval_frames", data.get("agent_interval_frames", AppConfig.agent_interval_frames))),
         agent_max_tokens=int(agent.get("max_tokens", data.get("agent_max_tokens", AppConfig.agent_max_tokens))),
         agent_action_mode=str(agent.get("action_mode", data.get("agent_action_mode", AppConfig.agent_action_mode))).lower(),
+        omni_device_id=str(omni.get("device_id", data.get("omni_device_id", AppConfig.omni_device_id))),
+        omni_swarm_enabled=_to_bool(
+            omni.get("swarm_enabled", data.get("omni_swarm_enabled", AppConfig.omni_swarm_enabled)),
+            "omni.swarm_enabled",
+        ),
+        omni_swarm_host=str(omni.get("swarm_host", data.get("omni_swarm_host", AppConfig.omni_swarm_host))),
+        omni_swarm_port=int(omni.get("swarm_port", data.get("omni_swarm_port", AppConfig.omni_swarm_port))),
+        omni_swarm_topic=str(omni.get("swarm_topic", data.get("omni_swarm_topic", AppConfig.omni_swarm_topic))),
+        omni_swarm_dry_run=_to_bool(
+            omni.get("swarm_dry_run", data.get("omni_swarm_dry_run", AppConfig.omni_swarm_dry_run)),
+            "omni.swarm_dry_run",
+        ),
     )

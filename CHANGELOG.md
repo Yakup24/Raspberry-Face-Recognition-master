@@ -6,11 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added PiSight-X embedding architecture with PyTorch/facenet-pytorch and FAISS vector search modules.
+- Added PiSight-Omni embedding architecture with PyTorch/facenet-pytorch and FAISS vector search modules.
 - Added vector enrollment through the existing `collect` command and new `enroll` alias without storing cropped face images.
 - Added FAISS/label metadata config paths and tests for vector database behavior.
 - Added optional `autonom` agent loop for VLM scene reasoning with dry-run action dispatch.
 - Added agent configuration, docs and tests for JSON decisions and safety boundaries.
+- Added `omni` command, local telemetry helpers and dry-run MQTT swarm publisher.
+- Added PiSight-Omni documentation covering scope, telemetry and safety boundaries.
 - Expanded documentation for architecture, Raspberry Pi setup, camera setup, enrollment, recognition, systemd and privacy model.
 - Added YAML example configuration and placeholder examples for service usage, commands, embedding structure and expected errors.
 - Added pytest-compatible tests for config validation, vector DB behavior, dataset compatibility, camera unavailable behavior, model loading and recognition pipeline behavior.

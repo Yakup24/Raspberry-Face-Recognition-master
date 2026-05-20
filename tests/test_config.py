@@ -81,6 +81,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.embedding_dim, 512)
         self.assertEqual(config.agent_model, "gpt-4.1-mini")
         self.assertEqual(config.agent_interval_frames, 30)
+        self.assertEqual(config.omni_device_id, "node-001")
+        self.assertFalse(config.omni_swarm_enabled)
 
     def test_missing_camera_source_in_camera_section_is_invalid(self):
         result = validate_config({"camera": {"width": 640}})
@@ -150,6 +152,40 @@ class ConfigTests(unittest.TestCase):
 
         self.assertFalse(result.is_valid)
         self.assertIn("agent.action_mode", result.errors[0])
+
+    def test_omni_config_parses_from_yaml(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "config.yaml"
+            config_path.write_text(
+                "\n".join(
+                    [
+                        "omni:",
+                        "  device_id: camera-alpha",
+                        "  swarm_enabled: true",
+                        "  swarm_host: mqtt.local",
+                        "  swarm_port: 1884",
+                        "  swarm_topic: pisight/omni/test",
+                        "  swarm_dry_run: false",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_config(str(config_path))
+
+            self.assertEqual(config.omni_device_id, "camera-alpha")
+            self.assertTrue(config.omni_swarm_enabled)
+            self.assertEqual(config.omni_swarm_host, "mqtt.local")
+            self.assertEqual(config.omni_swarm_port, 1884)
+            self.assertEqual(config.omni_swarm_topic, "pisight/omni/test")
+            self.assertFalse(config.omni_swarm_dry_run)
+
+    def test_invalid_omni_swarm_port_is_rejected(self):
+        result = validate_config({"omni": {"swarm_port": 0}})
+
+        self.assertFalse(result.is_valid)
+        self.assertIn("omni.swarm_port", result.errors[0])
 
 
 if __name__ == "__main__":

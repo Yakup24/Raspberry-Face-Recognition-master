@@ -1,5 +1,5 @@
 $ pisight --config ./config.yaml recognize --no-window
-PiSight-X recognition started
+PiSight-Omni recognition started
 press Ctrl+C to stop
 
 [DETECTED] label=demo-user-001 distance=0.421
@@ -11,3 +11,10 @@ VLM analysis is opt-in and may send frames to the configured model endpoint.
 actions are advisory only; GPIO/locks/network alerts are not executed
 [AGENT][DRY_RUN] action=GREET
 [AGENT][ANALYSIS] A known demo user is visible and no immediate hazard is apparent.
+
+$ pisight --config ./config.yaml omni --no-window --max-frames 30 --swarm
+PiSight-Omni advisory agent started
+VLM analysis is opt-in and may send frames to the configured model endpoint.
+actions are advisory only; GPIO/locks/network alerts are not executed
+omni device_id=node-001
+swarm telemetry=dry_run

@@ -20,7 +20,7 @@ Each embedding is normalized and searched against the local FAISS index. The nea
 
 ## 5. Unknown behavior
 
-If the index is empty or no vector is close enough, PiSight-X returns the configured `unknown_label`.
+If the index is empty or no vector is close enough, PiSight-Omni returns the configured `unknown_label`.
 
 ## 6. Console and preview output
 

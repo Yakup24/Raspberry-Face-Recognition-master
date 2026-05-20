@@ -1,6 +1,6 @@
 """Vision backends for PiSight.
 
-OpenCV remains the camera and drawing layer. The PiSight-X path uses
+OpenCV remains the camera and drawing layer. The PiSight-Omni path uses
 facenet-pytorch for face detection/embedding and stores only vector embeddings.
 Legacy Haar/LBPH helpers are kept for compatibility with older modules and
 tests, but the CLI now enrolls and recognizes through embeddings by default.
