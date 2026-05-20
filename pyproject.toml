@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,11 +8,38 @@ version = "0.1.0"
 description = "A Raspberry Pi local face recognition toolkit built around OpenCV."
 readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Yakup24" }
 ]
+keywords = [
+  "opencv",
+  "raspberry-pi",
+  "face-recognition",
+  "computer-vision",
+  "edge-ai",
+  "privacy"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Image Recognition"
+]
 dependencies = [
-  "numpy>=1.23"
+  "numpy>=1.23",
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6"
 ]
 
 [project.scripts]
@@ -20,4 +47,7 @@ pisight = "raspberry_face_recognition.cli:main"
 raspberry-face-recognition = "raspberry_face_recognition.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["raspberry_face_recognition*"]
+include = ["raspberry_face_recognition*", "pisight*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

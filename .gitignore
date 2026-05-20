@@ -14,6 +14,10 @@ env/
 # Local runtime data
 # Face images, trained models, and labels can contain personal data.
 data/
+logs/
+config.json
+config.yaml
+.env
 
 # OS and editor files
 .DS_Store

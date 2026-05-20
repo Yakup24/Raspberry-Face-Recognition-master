@@ -1,0 +1,2 @@
+cp examples/config.example.yaml config.yaml
+pisight --config config.yaml recognize --no-window

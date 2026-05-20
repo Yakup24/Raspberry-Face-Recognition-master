@@ -1,5 +1,12 @@
 # Runtime dependency for training and recognition arrays.
 numpy>=1.23
 
+# Runtime dependency for YAML configuration files.
+PyYAML>=6.0
+
+# Development and CI dependencies.
+pytest>=8
+ruff>=0.6
+
 # On Raspberry Pi, install OpenCV from apt for better camera support:
 # sudo apt install python3-opencv

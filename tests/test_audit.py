@@ -13,15 +13,15 @@ class AuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             faces = root / "faces"
-            ada = faces / "Ada"
-            ada.mkdir(parents=True)
-            (ada / "000001.png").write_text("not a real image", encoding="utf-8")
-            (ada / "notes.txt").write_text("ignored", encoding="utf-8")
+            demo_user = faces / "demo-user-001"
+            demo_user.mkdir(parents=True)
+            (demo_user / "000001.png").write_text("not a real image", encoding="utf-8")
+            (demo_user / "notes.txt").write_text("ignored", encoding="utf-8")
 
             model = root / "model.yml"
             model.write_text("model", encoding="utf-8")
             labels = root / "labels.json"
-            save_label_map({0: "Ada"}, labels)
+            save_label_map({0: "demo-user-001"}, labels)
 
             config_path = root / "config.json"
             config_path.write_text(
@@ -39,7 +39,7 @@ class AuditTests(unittest.TestCase):
 
             self.assertEqual(audit.people, 1)
             self.assertEqual(audit.images, 1)
-            self.assertEqual(audit.images_by_person, {"Ada": 1})
+            self.assertEqual(audit.images_by_person, {"demo-user-001": 1})
             self.assertTrue(audit.model_exists)
             self.assertTrue(audit.labels_exists)
             self.assertEqual(audit.labels_count, 1)

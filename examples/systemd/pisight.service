@@ -4,13 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
 WorkingDirectory=/opt/pisight
-Environment=PYTHONUNBUFFERED=1
-EnvironmentFile=-/etc/default/pisight
 ExecStart=/opt/pisight/.venv/bin/python -m pisight --config /opt/pisight/config.yaml recognize --no-window
 Restart=on-failure
 RestartSec=5
+User=pi
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target

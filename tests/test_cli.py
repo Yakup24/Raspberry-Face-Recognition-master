@@ -11,6 +11,41 @@ from raspberry_face_recognition import cli
 
 
 class CliTests(unittest.TestCase):
+    def test_parser_accepts_collect_arguments(self):
+        parser = cli.build_parser()
+
+        args = parser.parse_args(["--config", "config.yaml", "collect", "--name", "demo-user", "--count", "5"])
+
+        self.assertEqual(args.config, "config.yaml")
+        self.assertEqual(args.command, "collect")
+        self.assertEqual(args.name, "demo-user")
+        self.assertEqual(args.count, 5)
+
+    def test_parser_accepts_train_arguments(self):
+        parser = cli.build_parser()
+
+        args = parser.parse_args(["--config", "config.yaml", "train"])
+
+        self.assertEqual(args.command, "train")
+        self.assertEqual(args.config, "config.yaml")
+
+    def test_parser_accepts_recognize_arguments(self):
+        parser = cli.build_parser()
+
+        args = parser.parse_args(["--config", "config.yaml", "recognize", "--no-window"])
+
+        self.assertEqual(args.command, "recognize")
+        self.assertTrue(args.no_window)
+
+    def test_help_command_exits_successfully(self):
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            with self.assertRaises(SystemExit) as exit_info:
+                cli.main(["--help"])
+
+        self.assertEqual(exit_info.exception.code, 0)
+        self.assertIn("Raspberry Pi face recognition toolkit", stdout.getvalue())
+
     def test_recognize_reports_missing_model_before_opening_camera(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

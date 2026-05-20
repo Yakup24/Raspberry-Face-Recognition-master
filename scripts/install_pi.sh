@@ -14,8 +14,8 @@ python3 -m venv .venv --system-site-packages
 python -m pip install --upgrade pip
 python -m pip install -e .
 
-if [ ! -f config.json ]; then
-  cp config.example.json config.json
+if [ ! -f config.yaml ]; then
+  cp config.example.yaml config.yaml
 fi
 
-pisight --config config.json doctor
+pisight --config config.yaml doctor

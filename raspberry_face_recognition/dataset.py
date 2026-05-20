@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import json
 from pathlib import Path
 import re
@@ -12,6 +13,15 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 class DatasetError(RuntimeError):
     """Raised when the local face dataset cannot be used."""
+
+
+@dataclass(frozen=True)
+class DatasetValidationResult:
+    is_valid: bool
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    people_count: int = 0
+    image_count: int = 0
 
 
 def normalize_person_name(name: str) -> str:
@@ -45,6 +55,52 @@ def iter_person_images(faces_dir: Path) -> Iterator[Tuple[str, Path]]:
         for image_path in sorted(person_dir.iterdir()):
             if image_path.suffix.lower() in IMAGE_EXTENSIONS:
                 yield person, image_path
+
+
+def validate_training_dataset(faces_dir: Path) -> DatasetValidationResult:
+    """Validate dataset structure before OpenCV reads image pixels."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    people_count = 0
+    image_count = 0
+
+    if not faces_dir.exists():
+        return DatasetValidationResult(
+            False,
+            [f"Dataset directory does not exist: {faces_dir}"],
+            warnings,
+        )
+
+    if not faces_dir.is_dir():
+        return DatasetValidationResult(False, [f"Dataset path is not a directory: {faces_dir}"], warnings)
+
+    person_dirs = sorted(path for path in faces_dir.iterdir() if path.is_dir())
+    if not person_dirs:
+        return DatasetValidationResult(False, [f"No person folders found in dataset: {faces_dir}"], warnings)
+
+    for person_dir in person_dirs:
+        supported_images = [
+            path
+            for path in person_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+        ]
+        unsupported_files = [
+            path
+            for path in person_dir.iterdir()
+            if path.is_file() and path.suffix.lower() not in IMAGE_EXTENSIONS
+        ]
+        if unsupported_files:
+            warnings.append(f"Unsupported files skipped in {person_dir.name}: {len(unsupported_files)}")
+        if not supported_images:
+            warnings.append(f"No supported face images found in person folder: {person_dir.name}")
+            continue
+        people_count += 1
+        image_count += len(supported_images)
+
+    if image_count == 0:
+        errors.append("No supported face image files found. Run the collect command first.")
+
+    return DatasetValidationResult(not errors, errors, warnings, people_count, image_count)
 
 
 def build_label_map(people: Iterable[str]) -> Dict[int, str]:
