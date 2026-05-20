@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 from typing import Any, Optional, Sequence
 
+from .audit import build_dataset_audit, format_audit_text
 from .config import load_config
 from .dataset import (
     DatasetError,
@@ -53,6 +55,18 @@ def command_doctor(args: argparse.Namespace) -> int:
         exit_code = 1
 
     return exit_code
+
+
+def command_audit(args: argparse.Namespace) -> int:
+    config = _load(args)
+    audit = build_dataset_audit(config)
+
+    if args.json:
+        print(json.dumps(audit.to_dict(), indent=2, sort_keys=True))
+    else:
+        print(format_audit_text(audit))
+
+    return 1 if audit.warnings and args.fail_on_warning else 0
 
 
 def command_collect(args: argparse.Namespace) -> int:
@@ -204,6 +218,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = subparsers.add_parser("doctor", help="Check local dependencies and configuration")
     doctor.set_defaults(func=command_doctor)
+
+    audit = subparsers.add_parser("audit", help="Audit local dataset/model metadata without reading image pixels")
+    audit.add_argument("--json", action="store_true", help="Print audit result as JSON")
+    audit.add_argument("--fail-on-warning", action="store_true", help="Return exit code 1 when warnings are found")
+    audit.set_defaults(func=command_audit)
 
     collect = subparsers.add_parser("collect", help="Collect face samples for one person")
     collect.add_argument("--name", required=True, help="Person name to store under data/faces")
