@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Any, Optional, Sequence
+from typing import Any, Optional, Sequence, Union
 
 from .audit import build_dataset_audit, format_audit_text
 from .config import load_config
@@ -14,11 +14,13 @@ from .dataset import (
     DatasetError,
     build_label_map,
     iter_person_images,
-    load_label_map,
     next_sample_index,
     person_directory,
     save_label_map,
+    validate_training_dataset,
 )
+from .model import load_model
+from .recognition import format_detection, run_recognition_step
 from .vision import create_detector, create_recognizer, crop_face, detect_faces, require_cv2, require_numpy
 
 
@@ -26,16 +28,31 @@ def _load(args: argparse.Namespace) -> Any:
     return load_config(args.config)
 
 
-def _open_camera(cv2: Any, camera_index: int) -> Any:
-    camera = cv2.VideoCapture(camera_index)
+def _open_camera(cv2: Any, camera_source: Union[int, str], config: Optional[Any] = None) -> Any:
+    camera = cv2.VideoCapture(camera_source)
     if not camera.isOpened():
-        raise RuntimeError(f"Could not open camera index {camera_index}.")
+        raise RuntimeError(f"Could not open camera/video source: {camera_source!r}.")
+    if config is not None:
+        _apply_camera_settings(cv2, camera, config)
     return camera
+
+
+def _apply_camera_settings(cv2: Any, camera: Any, config: Any) -> None:
+    settings = [
+        ("camera_width", "CAP_PROP_FRAME_WIDTH"),
+        ("camera_height", "CAP_PROP_FRAME_HEIGHT"),
+        ("camera_fps", "CAP_PROP_FPS"),
+    ]
+    for config_attr, cv2_attr in settings:
+        value = getattr(config, config_attr, None)
+        if value is not None and hasattr(cv2, cv2_attr):
+            camera.set(getattr(cv2, cv2_attr), value)
 
 
 def command_doctor(args: argparse.Namespace) -> int:
     config = _load(args)
     print(f"config: {Path(args.config).resolve()}")
+    print(f"camera_source: {config.camera_source}")
     print(f"data: {config.data_dir}")
     print(f"faces: {config.faces_dir}")
 
@@ -73,7 +90,7 @@ def command_collect(args: argparse.Namespace) -> int:
     config = _load(args)
     cv2 = require_cv2()
     detector = create_detector(config)
-    camera = _open_camera(cv2, config.camera_index)
+    camera = _open_camera(cv2, config.camera_source, config)
 
     output_dir = person_directory(config.faces_dir, args.name)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -127,6 +144,12 @@ def command_collect(args: argparse.Namespace) -> int:
 
 def command_train(args: argparse.Namespace) -> int:
     config = _load(args)
+    dataset_status = validate_training_dataset(config.faces_dir)
+    for warning in dataset_status.warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    if not dataset_status.is_valid:
+        raise DatasetError("; ".join(dataset_status.errors))
+
     cv2 = require_cv2()
     np = require_numpy()
     rows = list(iter_person_images(config.faces_dir))
@@ -161,14 +184,14 @@ def command_train(args: argparse.Namespace) -> int:
 
 def command_recognize(args: argparse.Namespace) -> int:
     config = _load(args)
-    if not config.model_path.exists():
-        raise DatasetError(f"Model file not found: {config.model_path}. Run the train command first.")
-    labels = load_label_map(config.labels_path)
+    model_result = load_model(config.model_path, config.labels_path)
+    if not model_result.success or model_result.model is None:
+        raise DatasetError(f"{model_result.error}. Run the train command first.")
+    labels = model_result.labels
     cv2 = require_cv2()
     detector = create_detector(config)
-    recognizer = create_recognizer()
-    recognizer.read(str(config.model_path))
-    camera = _open_camera(cv2, config.camera_index)
+    recognizer = model_result.model
+    camera = _open_camera(cv2, config.camera_source, config)
     show_window = config.display and not args.no_window
 
     print("recognition started")
@@ -180,24 +203,22 @@ def command_recognize(args: argparse.Namespace) -> int:
             if not ok:
                 raise RuntimeError("Camera returned an empty frame.")
 
-            gray, faces = detect_faces(frame, detector, config)
-            for face in faces:
-                crop = crop_face(gray, face, config.face_size)
-                label_id, confidence = recognizer.predict(crop)
-                name = labels.get(label_id, "unknown")
-                if confidence > config.confidence_threshold:
-                    name = "unknown"
-                x, y, width, height = face
-                cv2.rectangle(frame, (x, y), (x + width, y + height), (30, 140, 240), 2)
-                cv2.putText(
-                    frame,
-                    f"{name} ({confidence:.1f})",
-                    (x, max(24, y - 10)),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    (30, 140, 240),
-                    2,
-                )
+            step_result = run_recognition_step(frame, detector, recognizer, config, labels)
+            for detection in step_result.detections:
+                if config.debug or not show_window:
+                    print(format_detection(detection))
+                if config.draw_bounding_boxes:
+                    x, y, width, height = detection.box
+                    cv2.rectangle(frame, (x, y), (x + width, y + height), (30, 140, 240), 2)
+                    cv2.putText(
+                        frame,
+                        f"{detection.label} ({detection.confidence:.1f})",
+                        (x, max(24, y - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7,
+                        (30, 140, 240),
+                        2,
+                    )
 
             if show_window:
                 cv2.imshow("recognize faces", frame)
@@ -213,7 +234,7 @@ def command_recognize(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Raspberry Pi face recognition toolkit")
-    parser.add_argument("--config", default="config.json", help="Path to JSON configuration file")
+    parser.add_argument("--config", default="config.json", help="Path to JSON or YAML configuration file")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     doctor = subparsers.add_parser("doctor", help="Check local dependencies and configuration")

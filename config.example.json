@@ -1,9 +1,10 @@
 {
-  "camera_index": 0,
+  "camera_source": 0,
   "data_dir": "data",
   "faces_dir": "data/faces",
   "model_path": "data/model.yml",
   "labels_path": "data/labels.json",
+  "log_dir": "logs",
   "cascade_path": "",
   "sample_count": 40,
   "face_width": 160,
@@ -12,5 +13,9 @@
   "min_neighbors": 5,
   "min_face_size": 60,
   "confidence_threshold": 70.0,
+  "unknown_label": "unknown",
+  "draw_bounding_boxes": true,
+  "debug": false,
+  "save_unknown_faces": false,
   "display": true
 }

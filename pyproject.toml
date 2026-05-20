@@ -12,7 +12,14 @@ authors = [
   { name = "Yakup24" }
 ]
 dependencies = [
-  "numpy>=1.23"
+  "numpy>=1.23",
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6"
 ]
 
 [project.scripts]
@@ -20,4 +27,7 @@ pisight = "raspberry_face_recognition.cli:main"
 raspberry-face-recognition = "raspberry_face_recognition.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["raspberry_face_recognition*"]
+include = ["raspberry_face_recognition*", "pisight*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

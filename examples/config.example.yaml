@@ -1,0 +1,20 @@
+camera:
+  source: 0
+  width: 640
+  height: 480
+  fps: 15
+
+paths:
+  dataset_dir: "./data/dataset"
+  model_path: "./data/models/face_model.yml"
+  labels_path: "./data/models/labels.json"
+  log_dir: "./logs"
+
+recognition:
+  confidence_threshold: 70
+  unknown_label: "unknown"
+  draw_bounding_boxes: true
+
+runtime:
+  debug: false
+  save_unknown_faces: false

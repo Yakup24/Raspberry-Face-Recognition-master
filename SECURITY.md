@@ -1,21 +1,21 @@
 # Security Policy
 
-## Supported Versions
+## Data Policy
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+This repository must not include real face samples, personal photos, private camera recordings, access tokens or sensitive personal information.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Privacy
+
+PiSight is designed for local processing. Face samples and model files should remain on the local device unless the user explicitly exports them.
+
+## Responsible Usage
+
+Face recognition systems can create privacy and consent risks. Use this project only in environments where people are informed and authorized.
+
+## Production Warning
+
+This project should not be used as a standalone security authentication system without additional controls such as liveness detection, access control review and formal risk assessment.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
-
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+If you identify a security issue, report it privately to the maintainer. Avoid sharing real face samples, model files, logs with real names or private camera recordings in public issues.

@@ -1,0 +1,10 @@
+Command:
+pisight --config config.yaml recognize --no-window
+
+Example stderr:
+error: Model file not found: <project>/data/models/face_model.yml. Run the train command first.
+
+Checks:
+- Collect local samples first.
+- Run pisight --config config.yaml train.
+- Confirm paths.model_path and paths.labels_path match the generated files.

@@ -1,0 +1,11 @@
+Command:
+pisight --config config.yaml recognize --no-window
+
+Example stderr:
+error: Could not open camera/video source: 99.
+
+Checks:
+- Confirm camera.source in config.yaml.
+- Confirm the camera is connected and visible to the OS.
+- Confirm no other process is using the camera.
+- Run the command manually before using systemd.
