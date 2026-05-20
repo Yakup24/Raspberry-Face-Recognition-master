@@ -29,7 +29,7 @@ On Raspberry Pi OS, OpenCV from apt is usually more reliable than camera-related
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
+python -m pip install -e ".[deep]"
 ```
 
 ## 4. OpenCV dependency notes
@@ -46,7 +46,7 @@ Run:
 pisight --config config.yaml doctor
 ```
 
-The doctor command checks OpenCV import, Haar cascade loading and `cv2.face` availability for LBPH recognition.
+The doctor command checks OpenCV camera support plus the deep runtime needed for PyTorch/facenet-pytorch/FAISS recognition.
 
 ## 5. Camera access permissions
 
@@ -63,7 +63,7 @@ For Raspberry Pi Camera Module, use the current Raspberry Pi OS camera tools to 
 - Start with 640x480 at 15 FPS.
 - Prefer stable lighting and a fixed camera position.
 - Use `--no-window` for headless operation.
-- Keep datasets small and intentional during early tests.
+- Keep enrollment counts small and intentional during early tests.
 - Lower resolution if CPU usage is too high.
 
 ## 7. Headless usage notes
@@ -79,7 +79,7 @@ systemd services should generally use `--no-window` because no desktop display i
 ## 8. Troubleshooting
 
 - `OpenCV is not installed`: install `python3-opencv` and recreate the venv with `--system-site-packages`.
-- `OpenCV face recognizer support is missing`: confirm the installed OpenCV build exposes `cv2.face`.
+- `facenet-pytorch is not installed`: install the deep optional dependencies.
 - `Could not open camera/video source`: check `camera.source`, camera permissions and whether another process is using the camera.
-- `Model file not found`: run `pisight --config config.yaml train` after collecting samples.
-- `No supported face image files found`: check the dataset directory and file extensions.
+- `No enrolled face vectors found`: run `pisight --config config.yaml collect --name demo-user-001 --count 10`.
+- `deep-runtime WARN`: install the deep optional dependencies with `python -m pip install -e ".[deep]"`.

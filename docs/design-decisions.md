@@ -2,38 +2,38 @@
 
 ## 1. Why Python?
 
-Python keeps the OpenCV workflow readable and accessible on Raspberry Pi. It also supports quick testing and CLI development without a large build chain.
+Python keeps the vision pipeline readable and gives access to OpenCV, PyTorch, facenet-pytorch and FAISS without a large build chain.
 
 ## 2. Why OpenCV?
 
-OpenCV provides camera capture, Haar cascade detection, image preprocessing and LBPH recognition in one mature toolkit. On Raspberry Pi OS, the apt package is usually easier to integrate with camera support.
+OpenCV remains the camera I/O and drawing layer. It is widely available on Raspberry Pi OS and works well with `VideoCapture`.
 
-## 3. Why Raspberry Pi?
+## 3. Why MTCNN and InceptionResnetV1?
 
-Raspberry Pi is affordable, Linux-based and suitable for local edge vision demos. It also forces realistic thinking about CPU, storage, camera quality and service stability.
+The deep path is more robust than the former Haar/LBPH demo pipeline for alignment and embedding extraction. It also separates identity matching from raw image storage by converting faces into vectors.
 
-## 4. Why local-only processing?
+## 4. Why FAISS?
 
-Local processing reduces unnecessary exposure of face samples and camera frames. It also makes the project usable without a cloud account or remote API.
+FAISS provides local nearest-neighbor vector search. It lets the project store embeddings and search them without a custom linear-search implementation.
 
-## 5. Why systemd service support?
+## 5. Why local-only processing?
 
-Computer vision demos often need to run after boot or recover from process failure. systemd provides a standard Linux way to manage that lifecycle.
+Local processing avoids adding cloud upload risk and keeps the data boundary inspectable. It does not remove biometric risk, so embeddings still need local protection.
 
-## 6. Why config-driven execution?
+## 6. Why no offline train step?
 
-Config files make camera source, dataset paths, model paths and thresholds repeatable. This avoids hardcoded paths and manual edits between runs.
+The embedding model is pretrained. Enrollment adds vectors to the local FAISS index, so a separate LBPH-style `train` command is no longer part of the default workflow.
 
 ## 7. Alternatives
 
-- Cloud-based recognition: easier centralized management, but higher privacy and network dependency risks.
-- Full desktop application: richer UI, but heavier deployment and less suitable for headless Raspberry Pi usage.
-- Web dashboard: useful future direction, but not required for the core CLI workflow.
-- Microcontroller-based solution: lower power, but not realistic for this OpenCV recognition workflow.
+- Cloud recognition: easier centralized inference, higher privacy and network dependency risk.
+- Haar/LBPH: lighter, but less robust and requires image datasets.
+- Full desktop application: richer UI, but heavier deployment and less useful for headless Raspberry Pi.
+- Microcontroller-based solution: lower power, but not realistic for this deep embedding workflow.
 
 ## 8. Trade-offs
 
-- Local privacy boundary is clearer, but device loss or weak filesystem permissions still matter.
-- Raspberry Pi keeps deployment lightweight, but CPU and camera constraints limit throughput.
-- LBPH is simple and local, but dataset quality strongly influences behavior.
-- systemd improves service stability, but operational logs still need privacy review.
+- Embeddings avoid raw image storage by default, but they remain sensitive biometric-derived data.
+- Deep models improve architecture maturity, but Raspberry Pi CPU FPS can be low.
+- FAISS is powerful, but distance thresholds still need local calibration and are not security guarantees.
+- systemd improves service stability, but logs and labels still need privacy review.

@@ -64,5 +64,5 @@ Avoid logging real names in public demos.
 - Check paths in `WorkingDirectory` and `ExecStart`.
 - Confirm the service user can read the config and access the camera.
 - Run the same command manually before enabling the service.
-- Check model and labels files exist.
+- Check FAISS index and vector label metadata exist.
 - Use `doctor` for dependency checks.

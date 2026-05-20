@@ -1,6 +1,6 @@
 $ pisight --config ./config.yaml recognize --no-window
-recognition started
+PiSight-X recognition started
 press Ctrl+C to stop
 
-[DETECTED] label=demo-user-001 confidence=64.2
-[DETECTED] label=unknown confidence=91.4
+[DETECTED] label=demo-user-001 distance=0.421
+[DETECTED] label=unknown distance=1.204

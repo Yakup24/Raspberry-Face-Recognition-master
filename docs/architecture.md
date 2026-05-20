@@ -1,74 +1,73 @@
 # Architecture
 
-PiSight is a local-first computer vision toolkit built around a small Python package and CLI. The runtime stays on the device: camera frames, collected samples, labels and model files are stored locally unless the user explicitly moves them.
+PiSight-X is a local edge vision toolkit built around live face embeddings and vector search.
 
 ## 1. High-level architecture
 
 ```text
 Camera / Video Source
-  -> Frame Capture
-  -> Face Detector
-  -> Dataset Collector OR Recognition Pipeline
-  -> Local Model
-  -> Result Formatter
-  -> Console / Log Output
+  -> OpenCV VideoCapture
+  -> MTCNN Face Detection
+  -> In-memory Face Tensor
+  -> InceptionResnetV1 Embedding
+  -> FAISS Vector Index
+  -> Match Result
+  -> Console / Optional Preview Window
 ```
 
-The `pisight` CLI loads configuration first, then dispatches to `doctor`, `collect`, `train`, `recognize`, or `audit`.
+The default flow does not write cropped face images to disk.
 
 ## 2. Component responsibilities
 
-- `raspberry_face_recognition.cli`: argument parsing and command orchestration.
-- `raspberry_face_recognition.config`: JSON/YAML config loading, path resolution and validation.
-- `raspberry_face_recognition.dataset`: dataset folder handling, label mapping and training dataset validation.
-- `raspberry_face_recognition.vision`: OpenCV imports, Haar cascade setup, LBPH recognizer creation and face cropping.
-- `raspberry_face_recognition.model`: model and label file loading with explicit error results.
-- `raspberry_face_recognition.recognition`: single-frame recognition pipeline and detection formatting.
-- `raspberry_face_recognition.audit`: privacy-preserving filesystem metadata checks.
+- `raspberry_face_recognition.cli`: command orchestration for doctor, collect/enroll, train compatibility, recognize and audit.
+- `raspberry_face_recognition.config`: JSON/YAML loading, path resolution and validation.
+- `raspberry_face_recognition.vision`: OpenCV imports plus deep detector/recognizer factories.
+- `raspberry_face_recognition.vectordb`: FAISS index, label metadata and vector search.
+- `raspberry_face_recognition.audit`: legacy filesystem metadata checks.
+- `raspberry_face_recognition.dataset`, `model`, `recognition`: compatibility helpers for the former Haar/LBPH flow and tests.
 
-## 3. Camera input flow
-
-Camera input uses OpenCV `VideoCapture`. The configured `camera.source` can be an integer camera index or a video file path. Optional width, height and FPS settings are applied when the OpenCV backend exposes the matching properties.
-
-If the source cannot be opened, PiSight raises a clear runtime error instead of continuing with an invalid stream.
-
-## 4. Dataset collection flow
-
-The `collect` command opens the configured camera, detects faces with a Haar cascade, crops the largest detected face and writes local image samples under the configured dataset directory.
+## 3. Enrollment flow
 
 ```text
-data/faces/<label>/000001.png
-data/faces/<label>/000002.png
+Camera frame
+  -> RGB conversion
+  -> MTCNN detection
+  -> single-face guard
+  -> 512-dimensional embedding
+  -> FAISS add
+  -> JSON label metadata update
 ```
 
-Labels are sanitized before folder creation. Collected samples are runtime data and must not be committed.
+Frames and tensors are transient runtime data. The durable artifacts are the FAISS index and labels JSON.
 
-## 5. Training flow
+## 4. Recognition flow
 
-The `train` command validates the dataset structure before loading images. It skips unsupported file extensions, warns about empty person folders, loads supported images in grayscale, resizes them to the configured face size and trains an OpenCV LBPH recognizer.
+```text
+Camera frame
+  -> MTCNN detection
+  -> embedding extraction
+  -> FAISS nearest-neighbor search
+  -> distance threshold
+  -> label or unknown
+```
 
-Training writes:
+`recognition.confidence_threshold` is a vector distance threshold, not an accuracy percentage.
 
-- local model file, for example `data/model.yml`
-- local label map, for example `data/labels.json`
+## 5. Error handling
 
-## 6. Recognition flow
+Expected failures use clear CLI errors:
 
-The `recognize` command checks the model and labels first, then opens the camera source. For each frame, PiSight detects faces, crops each face, asks the recognizer for a label/confidence pair and maps high-confidence-distance results to the configured `unknown_label`.
-
-When a preview window is disabled or debug mode is enabled, detections can be printed to stdout.
-
-## 7. Error handling
-
-Expected failure cases are surfaced as CLI errors with exit code `2`:
-
+- missing OpenCV
+- missing PyTorch/facenet-pytorch/FAISS deep runtime
+- unavailable camera source
+- empty vector index
 - invalid config values
-- missing dataset directories
-- empty training datasets
-- missing model or labels files
-- unavailable camera/video source
-- missing OpenCV or missing `cv2.face` support
+- FAISS index/metadata dimension mismatch
 
-## 8. Logging approach
+## 6. Logging approach
 
-The current CLI writes operational output to stdout and stderr. When running under systemd, journald captures this output. A `log_dir` config value is accepted for deployment layouts, but structured file logging is a roadmap item rather than a completed feature.
+The CLI writes to stdout/stderr. In systemd deployments, journald captures that output. Structured file logging is still roadmap work.
+
+## 7. Operational constraints
+
+Deep models are heavier than the former Haar/LBPH path. Measure FPS on the actual device and do not publish hardware-independent performance claims.

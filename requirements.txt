@@ -1,12 +1,12 @@
-# Runtime dependency for training and recognition arrays.
 numpy>=1.23
-
-# Runtime dependency for YAML configuration files.
 PyYAML>=6.0
+torch>=2.0.0
+torchvision>=0.15.0
+facenet-pytorch>=2.5.3
+faiss-cpu>=1.7.4
 
-# Development and CI dependencies.
 pytest>=8
 ruff>=0.6
 
-# On Raspberry Pi, install OpenCV from apt for better camera support:
+# OpenCV is used for camera capture and drawing. On Raspberry Pi, prefer apt:
 # sudo apt install python3-opencv

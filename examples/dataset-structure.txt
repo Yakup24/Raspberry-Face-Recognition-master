@@ -1,13 +1,6 @@
 data/
-  dataset/
-    demo-user-001/
-      000001.png
-      000002.png
-      000003.png
-    demo-user-002/
-      000001.png
-      sample_002.jpg
-
-  models/
-    face_model.yml
+  embeddings/
+    faiss.index
     labels.json
+
+Legacy image datasets are not created by the default PiSight-X collect/enroll flow.

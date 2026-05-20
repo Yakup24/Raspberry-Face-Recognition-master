@@ -1,9 +1,37 @@
-"""OpenCV integration points for detection and recognition."""
+"""Vision backends for PiSight.
+
+OpenCV remains the camera and drawing layer. The PiSight-X path uses
+facenet-pytorch for face detection/embedding and stores only vector embeddings.
+Legacy Haar/LBPH helpers are kept for compatibility with older modules and
+tests, but the CLI now enrolls and recognizes through embeddings by default.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+
+
+def require_torch() -> Any:
+    try:
+        import torch  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError(
+            "PyTorch is not installed. Install the deep runtime with: "
+            'python -m pip install -e ".[deep]"'
+        ) from exc
+    return torch
+
+
+def require_facenet_pytorch() -> tuple[Any, Any]:
+    try:
+        from facenet_pytorch import InceptionResnetV1, MTCNN  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError(
+            "facenet-pytorch is not installed. Install the deep runtime with: "
+            'python -m pip install -e ".[deep]"'
+        ) from exc
+    return MTCNN, InceptionResnetV1
 
 
 def require_cv2() -> Any:
@@ -22,6 +50,47 @@ def require_numpy() -> Any:
     except ImportError as exc:
         raise RuntimeError("NumPy is not installed. Run: python3 -m pip install -r requirements.txt") from exc
     return np
+
+
+def get_device() -> Any:
+    """Select CUDA, Apple MPS or CPU for the embedding runtime."""
+    torch = require_torch()
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def create_deep_detector(device: Any) -> Any:
+    """Create an MTCNN detector for face alignment and crops."""
+    MTCNN, _ = require_facenet_pytorch()
+    return MTCNN(keep_all=True, device=device)
+
+
+def create_deep_recognizer(device: Any) -> Any:
+    """Create a FaceNet-style 512-dimensional embedding model."""
+    _, InceptionResnetV1 = require_facenet_pytorch()
+    return InceptionResnetV1(pretrained="vggface2").eval().to(device)
+
+
+def detect_and_embed(frame: Any, detector: Any, recognizer: Any, device: Any) -> tuple[Any, Any]:
+    """Detect faces and return boxes plus normalized embeddings.
+
+    The frame is converted in memory from BGR to RGB. No face crop is written to
+    disk by this function.
+    """
+    cv2 = require_cv2()
+    np = require_numpy()
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    boxes, _ = detector.detect(rgb_frame)
+    faces = detector(rgb_frame)
+    if faces is None or boxes is None:
+        return [], np.empty((0, 512), dtype=np.float32)
+
+    embeddings = recognizer(faces.to(device)).detach().cpu().numpy().astype(np.float32)
+    return boxes, embeddings
 
 
 def default_cascade_path(cv2: Any) -> Path:

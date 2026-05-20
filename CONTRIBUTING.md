@@ -26,7 +26,7 @@ On Raspberry Pi OS, install OpenCV from apt and create the venv with `--system-s
 - `feat: add new recognition option`
 - `fix: handle missing camera error`
 - `docs: update privacy notes`
-- `test: add dataset validation tests`
+- `test: add vector database validation`
 - `chore: update CI`
 
 ## Pull Request Checklist

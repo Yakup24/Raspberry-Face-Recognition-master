@@ -1,5 +1,5 @@
 [Unit]
-Description=PiSight Face Recognition Service
+Description=PiSight-X Local Face Embedding Service
 After=network.target
 
 [Service]

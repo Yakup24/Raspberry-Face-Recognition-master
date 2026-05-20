@@ -19,15 +19,19 @@ class AppConfig:
     faces_dir: Path = Path("data/faces")
     model_path: Path = Path("data/model.yml")
     labels_path: Path = Path("data/labels.json")
+    vector_index_path: Path = Path("data/embeddings/faiss.index")
+    vector_labels_path: Path = Path("data/embeddings/labels.json")
     log_dir: Path = Path("logs")
+    backend: str = "deep"
     cascade_path: str = ""
-    sample_count: int = 40
+    sample_count: int = 10
     face_width: int = 160
     face_height: int = 160
+    embedding_dim: int = 512
     scale_factor: float = 1.2
     min_neighbors: int = 5
     min_face_size: int = 60
-    confidence_threshold: float = 70.0
+    confidence_threshold: float = 0.8
     unknown_label: str = "unknown"
     draw_bounding_boxes: bool = True
     display: bool = True
@@ -139,6 +143,7 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         paths = _section(data, "paths")
         recognition = _section(data, "recognition")
         runtime = _section(data, "runtime")
+        embedding = _section(data, "embedding")
     except ValueError as exc:
         return ConfigValidationResult(False, [str(exc)], warnings)
 
@@ -158,6 +163,7 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         "sample_count": data.get("sample_count"),
         "face_width": data.get("face_width"),
         "face_height": data.get("face_height"),
+        "embedding.dim": embedding.get("dim"),
         "min_neighbors": data.get("min_neighbors"),
         "min_face_size": data.get("min_face_size"),
     }
@@ -203,10 +209,16 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         "paths.dataset_dir": paths.get("dataset_dir"),
         "paths.model_path": paths.get("model_path"),
         "paths.labels_path": paths.get("labels_path"),
+        "paths.vector_index_path": paths.get("vector_index_path"),
+        "paths.vector_labels_path": paths.get("vector_labels_path"),
         "paths.log_dir": paths.get("log_dir"),
     }.items():
         if raw_value is not None and not str(raw_value).strip():
             errors.append(f"{field_name} must not be empty.")
+
+    backend = str(data.get("backend", recognition.get("backend", AppConfig.backend))).lower()
+    if backend not in {"deep", "legacy"}:
+        errors.append("backend must be either 'deep' or 'legacy'.")
 
     if paths.get("log_dir") is not None:
         warnings.append("log_dir is accepted for deployment layouts; current CLI output is stdout/stderr.")
@@ -235,7 +247,16 @@ def load_config(path: Optional[str] = None) -> AppConfig:
     )
     model_path_value = paths.get("model_path", data.get("model_path", AppConfig.model_path))
     labels_path_value = paths.get("labels_path", data.get("labels_path", AppConfig.labels_path))
+    vector_index_path_value = paths.get(
+        "vector_index_path",
+        paths.get("faiss_index_path", data.get("vector_index_path", AppConfig.vector_index_path)),
+    )
+    vector_labels_path_value = paths.get(
+        "vector_labels_path",
+        data.get("vector_labels_path", AppConfig.vector_labels_path),
+    )
     log_dir_value = paths.get("log_dir", data.get("log_dir", AppConfig.log_dir))
+    embedding = _section(data, "embedding")
 
     return AppConfig(
         camera_source=_parse_camera_source(
@@ -248,11 +269,15 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         faces_dir=_resolve_path(faces_dir_value, base_dir),
         model_path=_resolve_path(model_path_value, base_dir),
         labels_path=_resolve_path(labels_path_value, base_dir),
+        vector_index_path=_resolve_path(vector_index_path_value, base_dir),
+        vector_labels_path=_resolve_path(vector_labels_path_value, base_dir),
         log_dir=_resolve_path(log_dir_value, base_dir),
+        backend=str(data.get("backend", recognition.get("backend", AppConfig.backend))).lower(),
         cascade_path=str(data.get("cascade_path", AppConfig.cascade_path)),
         sample_count=int(data.get("sample_count", AppConfig.sample_count)),
         face_width=int(data.get("face_width", AppConfig.face_width)),
         face_height=int(data.get("face_height", AppConfig.face_height)),
+        embedding_dim=int(embedding.get("dim", data.get("embedding_dim", AppConfig.embedding_dim))),
         scale_factor=float(data.get("scale_factor", AppConfig.scale_factor)),
         min_neighbors=int(data.get("min_neighbors", AppConfig.min_neighbors)),
         min_face_size=int(data.get("min_face_size", AppConfig.min_face_size)),

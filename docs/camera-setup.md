@@ -56,7 +56,7 @@ If PiSight reports that it cannot open the source:
 
 ## 6. Lighting and angle
 
-Use stable front lighting, avoid strong backlight, and keep the camera angle close to the expected recognition angle. Dataset samples should include modest variation, but not uncontrolled blur or extreme lighting.
+Use stable front lighting, avoid strong backlight, and keep the camera angle close to the expected recognition angle. Enrollment frames should include modest variation, but not uncontrolled blur or extreme lighting.
 
 ## 7. FPS and resolution
 

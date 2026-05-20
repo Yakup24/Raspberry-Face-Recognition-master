@@ -2,11 +2,11 @@
 
 ## Data Policy
 
-This repository must not include real face samples, personal photos, private camera recordings, access tokens or sensitive personal information.
+This repository must not include real face samples, personal photos, private camera recordings, FAISS indexes created from real people, access tokens or sensitive personal information.
 
 ## Privacy
 
-PiSight is designed for local processing. Face samples and model files should remain on the local device unless the user explicitly exports them.
+PiSight-X is designed for local processing. The default enrollment flow stores embeddings rather than cropped face images, but embeddings and labels are still biometric-derived sensitive artifacts and should remain on the local device unless the user explicitly exports them.
 
 ## Responsible Usage
 
@@ -18,4 +18,4 @@ This project should not be used as a standalone security authentication system w
 
 ## Reporting a Vulnerability
 
-If you identify a security issue, report it privately to the maintainer. Avoid sharing real face samples, model files, logs with real names or private camera recordings in public issues.
+If you identify a security issue, report it privately to the maintainer. Avoid sharing real face samples, FAISS indexes, labels with real names, logs with personal context or private camera recordings in public issues.

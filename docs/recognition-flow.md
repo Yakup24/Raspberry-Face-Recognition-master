@@ -1,41 +1,41 @@
 # Recognition Flow
 
-Recognition loads a local model and runs face detection plus LBPH prediction on frames from the configured source.
+Recognition uses live embeddings and a local FAISS index.
 
 ## 1. Camera frame reading
 
-The `recognize` command opens `camera.source` with OpenCV `VideoCapture`. The source can be a camera index or a video file path.
+`recognize` opens `camera.source` with OpenCV `VideoCapture`. The source can be a camera index or a local video path.
 
 ## 2. Face detection
 
-Each frame is converted to grayscale and passed to the configured Haar cascade detector. If no faces are detected, the step returns an empty result and continues.
+Each frame is converted from BGR to RGB and passed to MTCNN from `facenet-pytorch`.
 
-## 3. Model loading
+## 3. Embedding extraction
 
-PiSight checks that the model and labels files exist before opening the camera. This avoids starting a camera session when recognition artifacts are missing.
+Detected faces are converted to 512-dimensional embeddings with `InceptionResnetV1(pretrained="vggface2")`.
 
-## 4. Recognition and confidence
+## 4. Vector search
 
-For each detected face, PiSight crops and resizes the face region, then calls the LBPH recognizer. Lower LBPH confidence values are usually better. If the returned confidence is greater than `recognition.confidence_threshold`, PiSight labels the detection as `unknown`.
+Each embedding is normalized and searched against the local FAISS index. The nearest vector is accepted only when its distance is below `recognition.confidence_threshold`.
 
-## 5. Unknown person behavior
+## 5. Unknown behavior
 
-Unknown detections use the configured `recognition.unknown_label`, which defaults to `unknown`.
+If the index is empty or no vector is close enough, PiSight-X returns the configured `unknown_label`.
 
-## 6. Console and log output
+## 6. Console and preview output
 
-The CLI writes to stdout and stderr. In systemd deployments, journald captures this output. With `runtime.debug: true` or `--no-window`, detection lines can be printed to the console.
+The CLI can draw bounding boxes in a preview window or print detections to stdout in debug/headless mode.
 
 ## 7. Error conditions
 
 Common recognition errors:
 
-- missing model file
-- missing labels file
-- failed OpenCV model read
+- missing deep runtime dependency
+- empty vector index
 - unavailable camera/video source
-- missing OpenCV face recognizer support
+- invalid FAISS index metadata
+- camera returning empty frames
 
 ## 8. Performance considerations
 
-Resolution, FPS, lighting and number of faces in frame all affect Raspberry Pi performance. Start with modest camera settings and measure on the actual device before claiming performance numbers.
+Deep embedding models are CPU-heavy on Raspberry Pi. Measure on the actual hardware, with the actual camera resolution and lighting, before documenting performance.

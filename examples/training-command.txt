@@ -1,3 +1,3 @@
 cp examples/config.example.yaml config.yaml
-pisight --config config.yaml collect --name demo-user-001 --count 40
+pisight --config config.yaml collect --name demo-user-001 --count 10
 pisight --config config.yaml train

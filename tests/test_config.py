@@ -67,6 +67,7 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(config.camera_height, 480)
             self.assertEqual(config.camera_fps, 15)
             self.assertEqual(config.faces_dir, (root / "runtime/faces").resolve())
+            self.assertEqual(config.vector_index_path, (root / "data/embeddings/faiss.index").resolve())
             self.assertEqual(config.confidence_threshold, 65)
             self.assertEqual(config.unknown_label, "demo-unknown")
             self.assertTrue(config.debug)
@@ -76,7 +77,8 @@ class ConfigTests(unittest.TestCase):
 
         self.assertEqual(config.camera_index, 0)
         self.assertEqual(config.face_size, (160, 160))
-        self.assertEqual(config.sample_count, 40)
+        self.assertEqual(config.sample_count, 10)
+        self.assertEqual(config.embedding_dim, 512)
 
     def test_missing_camera_source_in_camera_section_is_invalid(self):
         result = validate_config({"camera": {"width": 640}})
@@ -89,6 +91,31 @@ class ConfigTests(unittest.TestCase):
 
         self.assertFalse(result.is_valid)
         self.assertIn("confidence_threshold", result.errors[0])
+
+    def test_vector_paths_parse_from_config(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "paths": {
+                            "vector_index_path": "runtime/faiss.index",
+                            "vector_labels_path": "runtime/labels.json",
+                        },
+                        "embedding": {"dim": 512},
+                        "recognition": {"confidence_threshold": 0.8},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_config(str(config_path))
+
+            self.assertEqual(config.vector_index_path, (root / "runtime/faiss.index").resolve())
+            self.assertEqual(config.vector_labels_path, (root / "runtime/labels.json").resolve())
+            self.assertEqual(config.embedding_dim, 512)
+            self.assertEqual(config.confidence_threshold, 0.8)
 
 
 if __name__ == "__main__":

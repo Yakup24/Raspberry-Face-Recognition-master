@@ -21,6 +21,15 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.name, "demo-user")
         self.assertEqual(args.count, 5)
 
+    def test_parser_accepts_enroll_alias(self):
+        parser = cli.build_parser()
+
+        args = parser.parse_args(["--config", "config.yaml", "enroll", "--name", "demo-user", "--count", "3"])
+
+        self.assertEqual(args.command, "enroll")
+        self.assertEqual(args.name, "demo-user")
+        self.assertEqual(args.count, 3)
+
     def test_parser_accepts_train_arguments(self):
         parser = cli.build_parser()
 
@@ -44,17 +53,15 @@ class CliTests(unittest.TestCase):
                 cli.main(["--help"])
 
         self.assertEqual(exit_info.exception.code, 0)
-        self.assertIn("Raspberry Pi face recognition toolkit", stdout.getvalue())
+        self.assertIn("PiSight-X Raspberry Pi face embedding toolkit", stdout.getvalue())
 
-    def test_recognize_reports_missing_model_before_opening_camera(self):
+    def test_recognize_reports_missing_vectors_before_opening_camera(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = root / "config.json"
             config_path.write_text(
                 json.dumps(
                     {
-                        "model_path": "missing-model.yml",
-                        "labels_path": "labels.json",
                         "display": False,
                     }
                 ),
@@ -62,19 +69,28 @@ class CliTests(unittest.TestCase):
             )
 
             stderr = io.StringIO()
-            with contextlib.redirect_stderr(stderr):
+            fake_db = SimpleNamespace(count=0)
+            with contextlib.redirect_stderr(stderr), patch.object(cli, "require_cv2", return_value=SimpleNamespace()), patch.object(
+                cli, "get_device", return_value="cpu"
+            ), patch.object(cli, "create_deep_detector", return_value=object()), patch.object(
+                cli, "create_deep_recognizer", return_value=object()
+            ), patch.object(
+                cli, "FaceVectorDB", return_value=fake_db
+            ), patch.object(
+                cli, "_open_camera"
+            ) as open_camera:
                 exit_code = cli.main(["--config", str(config_path), "recognize", "--no-window"])
 
             self.assertEqual(exit_code, 2)
-            self.assertIn("Model file not found", stderr.getvalue())
+            self.assertIn("No enrolled face vectors", stderr.getvalue())
+            open_camera.assert_not_called()
 
-    def test_collect_fails_when_face_sample_cannot_be_written(self):
+    def test_collect_enrolls_vectors_without_writing_images(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "config.json"
             config_path.write_text(
                 json.dumps(
                     {
-                        "faces_dir": "faces",
                         "sample_count": 1,
                         "display": False,
                     }
@@ -84,20 +100,37 @@ class CliTests(unittest.TestCase):
             args = SimpleNamespace(config=str(config_path), name="test_user", count=1, no_window=True)
             camera = Mock()
             camera.read.return_value = (True, object())
+            fake_db = Mock()
             fake_cv2 = SimpleNamespace(imwrite=Mock(return_value=False))
 
             stdout = io.StringIO()
             with contextlib.redirect_stdout(stdout), patch.object(
                 cli, "require_cv2", return_value=fake_cv2
-            ), patch.object(cli, "create_detector", return_value=object()), patch.object(
+            ), patch.object(cli, "get_device", return_value="cpu"), patch.object(
+                cli, "create_deep_detector", return_value=object()
+            ), patch.object(cli, "create_deep_recognizer", return_value=object()), patch.object(
+                cli, "FaceVectorDB", return_value=fake_db
+            ), patch.object(
                 cli, "_open_camera", return_value=camera
-            ), patch.object(cli, "detect_faces", return_value=(object(), [(0, 0, 80, 80)])), patch.object(
-                cli, "crop_face", return_value=object()
+            ), patch.object(
+                cli, "detect_and_embed", return_value=([], [[0.0] * 512])
             ):
-                with self.assertRaisesRegex(RuntimeError, "Could not write face sample"):
-                    cli.command_collect(args)
+                exit_code = cli.command_collect(args)
 
+            self.assertEqual(exit_code, 0)
+            fake_db.add_face.assert_called_once()
+            fake_cv2.imwrite.assert_not_called()
             camera.release.assert_called_once()
+
+    def test_train_is_compatibility_noop(self):
+        args = SimpleNamespace(config="missing-config.json")
+        stdout = io.StringIO()
+
+        with contextlib.redirect_stdout(stdout):
+            exit_code = cli.command_train(args)
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("not required", stdout.getvalue())
 
 
 if __name__ == "__main__":

@@ -5,15 +5,18 @@ camera:
   fps: 15
 
 paths:
-  dataset_dir: "./data/dataset"
-  model_path: "./data/models/face_model.yml"
-  labels_path: "./data/models/labels.json"
+  vector_index_path: "./data/embeddings/faiss.index"
+  vector_labels_path: "./data/embeddings/labels.json"
   log_dir: "./logs"
 
 recognition:
-  confidence_threshold: 70
+  backend: "deep"
+  confidence_threshold: 0.8
   unknown_label: "unknown"
   draw_bounding_boxes: true
+
+embedding:
+  dim: 512
 
 runtime:
   debug: false

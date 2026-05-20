@@ -12,7 +12,7 @@ venv/
 env/
 
 # Local runtime data
-# Face images, trained models, and labels can contain personal data.
+# Embeddings, labels, screenshots, legacy face images and models can contain sensitive data.
 data/
 logs/
 config.json

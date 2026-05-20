@@ -5,14 +5,14 @@ PiSight tests focus on behavior that can be validated reliably without real came
 ## 1. Test Goals
 
 - Config validation
-- Dataset path validation
+- Vector index and legacy dataset path validation
 - Camera unavailable behavior
-- Model file loading behavior
-- Recognition pipeline stability
+- Vector DB behavior
+- Recognition pipeline compatibility behavior
 
 ## 2. Test Types
 
-- Unit tests for config, dataset and model helpers
+- Unit tests for config, vector DB, dataset compatibility and model helper behavior
 - Integration-like tests with mocks for camera and recognition flow
 - CLI tests for argument parsing and help behavior
 - Negative tests for missing files and invalid input
@@ -22,14 +22,14 @@ PiSight tests focus on behavior that can be validated reliably without real came
 - Real camera access
 - Real face data
 - Hardware-specific FPS claims
-- Accuracy claims without a documented evaluation dataset
+- Accuracy or FPS claims without documented local evaluation data
 
 ## 4. Mocking Strategy
 
 - Fake camera capture objects with `isOpened`, `read`, `set` and `release`
 - Fake detector results for empty and populated face lists
-- Fake recognizer objects with deterministic `predict` and `read` behavior
-- Temporary model and labels paths created under pytest `tmp_path`
+- Fake vector DB objects and deterministic embeddings
+- Temporary index, model and labels paths created under pytest `tmp_path`
 
 Run:
 
