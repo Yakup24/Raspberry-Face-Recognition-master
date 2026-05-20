@@ -29,7 +29,7 @@ On Raspberry Pi OS, OpenCV from apt is usually more reliable than camera-related
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[deep]"
+python -m pip install -e ".[deep,agent]"
 ```
 
 ## 4. OpenCV dependency notes

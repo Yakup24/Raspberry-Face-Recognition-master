@@ -12,6 +12,8 @@ Camera / Video Source
   -> InceptionResnetV1 Embedding
   -> FAISS Vector Index
   -> Match Result
+  -> Optional VLM Scene Reasoning
+  -> Advisory Action Decision
   -> Console / Optional Preview Window
 ```
 
@@ -23,6 +25,7 @@ The default flow does not write cropped face images to disk.
 - `raspberry_face_recognition.config`: JSON/YAML loading, path resolution and validation.
 - `raspberry_face_recognition.vision`: OpenCV imports plus deep detector/recognizer factories.
 - `raspberry_face_recognition.vectordb`: FAISS index, label metadata and vector search.
+- `raspberry_face_recognition.agent`: optional VLM scene analysis and safe action dispatch.
 - `raspberry_face_recognition.audit`: legacy filesystem metadata checks.
 - `raspberry_face_recognition.dataset`, `model`, `recognition`: compatibility helpers for the former Haar/LBPH flow and tests.
 
@@ -68,6 +71,19 @@ Expected failures use clear CLI errors:
 
 The CLI writes to stdout/stderr. In systemd deployments, journald captures that output. Structured file logging is still roadmap work.
 
-## 7. Operational constraints
+## 7. Agentic AI flow
+
+The `autonom` command combines local vector recognition with optional VLM scene reasoning:
+
+```text
+frame + FAISS match context
+  -> VLM JSON decision
+  -> safe dispatcher
+  -> dry-run action log
+```
+
+The dispatcher does not execute GPIO, locks, relays, Telegram or network actions. Any future real-world action adapter should be reviewed as a safety-critical integration.
+
+## 8. Operational constraints
 
 Deep models are heavier than the former Haar/LBPH path. Measure FPS on the actual device and do not publish hardware-independent performance claims.

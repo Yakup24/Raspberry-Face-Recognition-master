@@ -79,6 +79,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.face_size, (160, 160))
         self.assertEqual(config.sample_count, 10)
         self.assertEqual(config.embedding_dim, 512)
+        self.assertEqual(config.agent_model, "gpt-4.1-mini")
+        self.assertEqual(config.agent_interval_frames, 30)
 
     def test_missing_camera_source_in_camera_section_is_invalid(self):
         result = validate_config({"camera": {"width": 640}})
@@ -116,6 +118,38 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(config.vector_labels_path, (root / "runtime/labels.json").resolve())
             self.assertEqual(config.embedding_dim, 512)
             self.assertEqual(config.confidence_threshold, 0.8)
+
+    def test_agent_config_parses_from_yaml(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "config.yaml"
+            config_path.write_text(
+                "\n".join(
+                    [
+                        "agent:",
+                        "  model: gpt-4.1-mini",
+                        "  base_url: http://localhost:11434/v1",
+                        "  interval_frames: 12",
+                        "  max_tokens: 200",
+                        "  action_mode: disabled",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_config(str(config_path))
+
+            self.assertEqual(config.agent_model, "gpt-4.1-mini")
+            self.assertEqual(config.agent_base_url, "http://localhost:11434/v1")
+            self.assertEqual(config.agent_interval_frames, 12)
+            self.assertEqual(config.agent_max_tokens, 200)
+            self.assertEqual(config.agent_action_mode, "disabled")
+
+    def test_invalid_agent_action_mode_is_rejected(self):
+        result = validate_config({"agent": {"action_mode": "gpio"}})
+
+        self.assertFalse(result.is_valid)
+        self.assertIn("agent.action_mode", result.errors[0])
 
 
 if __name__ == "__main__":

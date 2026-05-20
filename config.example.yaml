@@ -21,3 +21,10 @@ embedding:
 runtime:
   debug: false
   save_unknown_faces: false
+
+agent:
+  model: "gpt-4.1-mini"
+  base_url: ""
+  interval_frames: 30
+  max_tokens: 300
+  action_mode: "dry_run"

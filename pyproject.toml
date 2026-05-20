@@ -43,6 +43,10 @@ deep = [
   "facenet-pytorch>=2.5.3",
   "faiss-cpu>=1.7.4"
 ]
+agent = [
+  "openai>=1.0.0",
+  "requests>=2.31.0"
+]
 dev = [
   "pytest>=8",
   "ruff>=0.6"
@@ -52,6 +56,8 @@ all = [
   "torchvision>=0.15.0",
   "facenet-pytorch>=2.5.3",
   "faiss-cpu>=1.7.4",
+  "openai>=1.0.0",
+  "requests>=2.31.0",
   "pytest>=8",
   "ruff>=0.6"
 ]

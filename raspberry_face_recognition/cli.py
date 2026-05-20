@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 from typing import Any, Optional, Sequence, Union
 
+from .agent import AgentError, AutonomousAgent
 from .audit import build_dataset_audit, format_audit_text
 from .config import load_config
 from .dataset import (
@@ -205,8 +206,96 @@ def command_recognize(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_autonom(args: argparse.Namespace) -> int:
+    config = _load(args)
+    cv2 = require_cv2()
+    device = get_device()
+    detector = create_deep_detector(device)
+    recognizer = create_deep_recognizer(device)
+    db = FaceVectorDB(config.vector_index_path, config.vector_labels_path, config.embedding_dim)
+    camera = _open_camera(cv2, config.camera_source, config)
+    show_window = config.display and not args.no_window
+    interval_frames = args.interval_frames or config.agent_interval_frames
+    max_frames = args.max_frames
+    if interval_frames < 1:
+        raise ValueError("interval-frames must be greater than zero.")
+    if max_frames is not None and max_frames < 1:
+        raise ValueError("max-frames must be greater than zero.")
+    agent = AutonomousAgent(
+        base_url=config.agent_base_url or None,
+        model_name=args.model or config.agent_model,
+        max_tokens=config.agent_max_tokens,
+        action_mode=config.agent_action_mode,
+    )
+
+    print("PiSight-Omni autonomous agent started")
+    print("VLM analysis is opt-in and may send frames to the configured model endpoint.")
+    print("actions are advisory only; GPIO/locks/network alerts are not executed")
+
+    frame_counter = 0
+    try:
+        while True:
+            ok, frame = camera.read()
+            if not ok:
+                raise RuntimeError("Camera returned an empty frame.")
+
+            frame_counter += 1
+            boxes, embeddings = detect_and_embed(frame, detector, recognizer, device)
+            faiss_results: list[dict[str, Any]] = []
+
+            for index, embedding in enumerate(embeddings):
+                result = db.search_face(
+                    embedding,
+                    threshold=config.confidence_threshold,
+                    unknown_label=config.unknown_label,
+                )
+                box = boxes[index]
+                faiss_results.append(
+                    {
+                        "label": result.label,
+                        "distance": result.distance,
+                        "matched": result.matched,
+                        "box": [float(value) for value in box],
+                    }
+                )
+
+                if config.draw_bounding_boxes:
+                    x1, y1, x2, y2 = [int(value) for value in box]
+                    color = (20, 180, 90) if result.matched else (30, 140, 240)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                    cv2.putText(
+                        frame,
+                        result.label,
+                        (x1, max(24, y1 - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7,
+                        color,
+                        2,
+                    )
+
+            if faiss_results and frame_counter % interval_frames == 0:
+                try:
+                    agent.analyze_scene_and_act(frame, faiss_results)
+                except AgentError as exc:
+                    print(f"agent warning: {exc}", file=sys.stderr)
+
+            if show_window:
+                cv2.imshow("PiSight-Omni Agent View", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+
+            if max_frames is not None and frame_counter >= max_frames:
+                break
+    finally:
+        camera.release()
+        if show_window:
+            cv2.destroyAllWindows()
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="PiSight-X Raspberry Pi face embedding toolkit")
+    parser = argparse.ArgumentParser(description="PiSight-X Raspberry Pi face embedding and agentic vision toolkit")
     parser.add_argument("--config", default="config.json", help="Path to JSON or YAML configuration file")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -237,6 +326,13 @@ def build_parser() -> argparse.ArgumentParser:
     recognize.add_argument("--no-window", action="store_true", help="Run without opening a preview window")
     recognize.set_defaults(func=command_recognize)
 
+    autonom = subparsers.add_parser("autonom", help="Run the advisory Vision-Language autonomous agent")
+    autonom.add_argument("--no-window", action="store_true", help="Run without opening a preview window")
+    autonom.add_argument("--interval-frames", type=int, default=None, help="Run VLM analysis every N frames")
+    autonom.add_argument("--max-frames", type=int, default=None, help="Stop after N frames")
+    autonom.add_argument("--model", default=None, help="Override the configured VLM model name")
+    autonom.set_defaults(func=command_autonom)
+
     return parser
 
 
@@ -245,7 +341,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (DatasetError, RuntimeError, ValueError) as exc:
+    except (AgentError, DatasetError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

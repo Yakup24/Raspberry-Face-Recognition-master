@@ -12,5 +12,10 @@
   "draw_bounding_boxes": true,
   "debug": false,
   "save_unknown_faces": false,
-  "display": true
+  "display": true,
+  "agent_model": "gpt-4.1-mini",
+  "agent_base_url": "",
+  "agent_interval_frames": 30,
+  "agent_max_tokens": 300,
+  "agent_action_mode": "dry_run"
 }

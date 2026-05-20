@@ -12,6 +12,7 @@ This roadmap lists planned improvements only. It does not claim completed featur
 - Structured recognition event logging
 - Local dashboard for device-only monitoring
 - Edge accelerator notes for Jetson/Coral-class devices
+- Pluggable reviewed action adapters for notifications or hardware integrations
 - Config validation CLI command
 
 ## Not planned as default behavior

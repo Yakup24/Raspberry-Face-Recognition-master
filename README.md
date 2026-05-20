@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Yakup24/pisight/actions/workflows/ci.yml/badge.svg)](https://github.com/Yakup24/pisight/actions/workflows/ci.yml)
 
-PiSight-X is a Raspberry Pi oriented local face embedding toolkit. It uses OpenCV for camera I/O, facenet-pytorch for MTCNN face detection and 512-dimensional embeddings, and FAISS for local vector search.
+PiSight-X is a Raspberry Pi oriented local face embedding and agentic vision toolkit. It uses OpenCV for camera I/O, facenet-pytorch for MTCNN face detection and 512-dimensional embeddings, FAISS for local vector search, and an optional VLM agent loop for scene-level reasoning.
 
 The default workflow does not write cropped face images to `data/faces/`. Enrollment converts live camera frames into embeddings and stores a local FAISS index plus JSON label metadata.
 
@@ -19,6 +19,8 @@ Camera / Video Source
   -> InceptionResnetV1 Embeddings
   -> FAISS Vector Index
   -> Local Match Result
+  -> Optional VLM Scene Reasoning
+  -> Advisory Action Decision
   -> Console / Optional Preview Window
 ```
 
@@ -43,6 +45,8 @@ Camera / Video Source
 | Detection | MTCNN through `facenet-pytorch` |
 | Embedding | `InceptionResnetV1(pretrained="vggface2")`, 512-dimensional vectors |
 | Search | FAISS `IndexFlatL2` local vector index |
+| Reasoning | Optional OpenAI/Ollama-compatible VLM analysis through `autonom` |
+| Actions | Dry-run action dispatcher; no GPIO, locks or alerts execute by default |
 | Privacy posture | No raw face crop storage in the default collect/enroll flow |
 | Compatibility | Legacy Haar/LBPH helper modules remain for older tests and migration context |
 | Operations | CLI, config files, systemd examples, doctor command and CI |
@@ -55,6 +59,7 @@ Camera / Video Source
 - Real-time vector enrollment through `collect` or `enroll`
 - Local FAISS index and JSON label metadata
 - Real-time recognition through vector nearest-neighbor search
+- Optional agentic `autonom` loop for Perception -> Reasoning -> Action demos
 - `train` compatibility command that explains offline training is no longer required
 - JSON and YAML config support
 - Dataset/model audit command retained for legacy runtime hygiene checks
@@ -70,6 +75,8 @@ Camera / Video Source
 - PyTorch
 - facenet-pytorch
 - FAISS CPU
+- OpenAI Python SDK for optional VLM reasoning
+- requests for future local agent integrations
 - pytest and ruff
 - systemd for Linux service deployment
 
@@ -106,11 +113,11 @@ sudo apt install -y python3 python3-venv python3-pip python3-opencv python3-nump
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[deep]"
+python -m pip install -e ".[deep,agent]"
 cp config.example.yaml config.yaml
 ```
 
-For development and CI-style checks without the heavy deep runtime:
+For development and CI-style checks without the heavy deep/agent runtime:
 
 ```sh
 python -m pip install -e ".[dev]"
@@ -143,6 +150,13 @@ embedding:
 runtime:
   debug: false
   save_unknown_faces: false
+
+agent:
+  model: "gpt-4.1-mini"
+  base_url: ""
+  interval_frames: 30
+  max_tokens: 300
+  action_mode: "dry_run"
 ```
 
 Notes:
@@ -152,6 +166,8 @@ Notes:
 - `paths.vector_labels_path` stores label metadata in JSON.
 - `recognition.confidence_threshold` is a vector distance threshold, not an accuracy percentage.
 - `runtime.save_unknown_faces` remains false by default and the current CLI does not save unknown face crops.
+- `agent.base_url` can point to an OpenAI-compatible local VLM endpoint. If it is empty, the OpenAI SDK default endpoint is used.
+- `agent.action_mode` is limited to `dry_run` or `disabled`; physical actions are not implemented.
 
 ## Usage
 
@@ -185,6 +201,14 @@ Run headless over SSH or systemd:
 pisight --config config.yaml recognize --no-window
 ```
 
+Run the optional agentic vision loop:
+
+```sh
+pisight --config config.yaml autonom --no-window --interval-frames 30
+```
+
+`autonom` sends selected frames to the configured VLM endpoint for scene reasoning. Use a local VLM endpoint if the reasoning step must remain on the device or local network.
+
 Compatibility train command:
 
 ```sh
@@ -199,6 +223,7 @@ The command does not train an offline model in the embedding pipeline; it explai
 - FAISS index files and label metadata are local runtime artifacts.
 - Embeddings are biometric-derived data and should not be committed or published.
 - PiSight-X does not upload frames, embeddings or labels.
+- The `autonom` command is opt-in and may send encoded frames to the configured VLM provider.
 - Do not use real names or real face data in public demos.
 - This project is not identity verification, surveillance infrastructure or access-control authentication.
 
@@ -230,6 +255,7 @@ CI intentionally avoids real camera access, real face images, private videos and
 - Benchmark script with hardware metadata
 - Local-only dashboard
 - Edge accelerator notes for Jetson/Coral-class devices
+- Pluggable reviewed action adapters for notifications or hardware integrations
 
 ## License
 

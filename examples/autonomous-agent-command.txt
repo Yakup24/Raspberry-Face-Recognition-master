@@ -1,0 +1,2 @@
+cp examples/config.example.yaml config.yaml
+pisight --config config.yaml autonom --no-window --interval-frames 30

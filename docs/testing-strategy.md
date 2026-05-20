@@ -8,6 +8,7 @@ PiSight tests focus on behavior that can be validated reliably without real came
 - Vector index and legacy dataset path validation
 - Camera unavailable behavior
 - Vector DB behavior
+- Agent decision parsing and safe action dispatch
 - Recognition pipeline compatibility behavior
 
 ## 2. Test Types
@@ -29,6 +30,7 @@ PiSight tests focus on behavior that can be validated reliably without real came
 - Fake camera capture objects with `isOpened`, `read`, `set` and `release`
 - Fake detector results for empty and populated face lists
 - Fake vector DB objects and deterministic embeddings
+- Fake VLM clients for agent tests
 - Temporary index, model and labels paths created under pytest `tmp_path`
 
 Run:

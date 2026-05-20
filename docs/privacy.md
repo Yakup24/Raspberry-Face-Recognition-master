@@ -25,6 +25,8 @@ Embeddings are biometric-derived data. They are not raw photos, but they should 
 
 PiSight-X has no remote upload workflow by default. Any future cloud storage, dashboard sync or remote logging should be reviewed as a privacy-impacting feature.
 
+The `autonom` command is an explicit opt-in exception: it can send encoded frames to the configured VLM endpoint for scene reasoning. Use a local endpoint through `agent.base_url` when camera frames must remain on the device or local network.
+
 ## 5. Personal data in labels and logs
 
 Labels can identify people if real names are used. Public demos should use placeholders such as `demo-user-001`.
@@ -37,6 +39,7 @@ Do not commit:
 - private camera recordings
 - screenshots from real environments
 - FAISS indexes created from real people
+- VLM request/response logs that contain private scene context
 - labels that identify real people
 - secrets, API keys or environment files
 

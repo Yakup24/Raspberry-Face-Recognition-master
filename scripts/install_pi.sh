@@ -12,7 +12,7 @@ sudo apt install -y \
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[deep]"
+python -m pip install -e ".[deep,agent]"
 
 if [ ! -f config.yaml ]; then
   cp config.example.yaml config.yaml

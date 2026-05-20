@@ -4,3 +4,10 @@ press Ctrl+C to stop
 
 [DETECTED] label=demo-user-001 distance=0.421
 [DETECTED] label=unknown distance=1.204
+
+$ pisight --config ./config.yaml autonom --no-window --max-frames 30
+PiSight-Omni autonomous agent started
+VLM analysis is opt-in and may send frames to the configured model endpoint.
+actions are advisory only; GPIO/locks/network alerts are not executed
+[AGENT][DRY_RUN] action=GREET
+[AGENT][ANALYSIS] A known demo user is visible and no immediate hazard is apparent.

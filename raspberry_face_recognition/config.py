@@ -37,6 +37,11 @@ class AppConfig:
     display: bool = True
     debug: bool = False
     save_unknown_faces: bool = False
+    agent_model: str = "gpt-4.1-mini"
+    agent_base_url: str = ""
+    agent_interval_frames: int = 30
+    agent_max_tokens: int = 300
+    agent_action_mode: str = "dry_run"
 
     @property
     def face_size(self) -> tuple[int, int]:
@@ -144,6 +149,7 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         recognition = _section(data, "recognition")
         runtime = _section(data, "runtime")
         embedding = _section(data, "embedding")
+        agent = _section(data, "agent")
     except ValueError as exc:
         return ConfigValidationResult(False, [str(exc)], warnings)
 
@@ -164,6 +170,8 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
         "face_width": data.get("face_width"),
         "face_height": data.get("face_height"),
         "embedding.dim": embedding.get("dim"),
+        "agent.interval_frames": agent.get("interval_frames"),
+        "agent.max_tokens": agent.get("max_tokens"),
         "min_neighbors": data.get("min_neighbors"),
         "min_face_size": data.get("min_face_size"),
     }
@@ -220,6 +228,10 @@ def validate_config(data: Mapping[str, Any]) -> ConfigValidationResult:
     if backend not in {"deep", "legacy"}:
         errors.append("backend must be either 'deep' or 'legacy'.")
 
+    action_mode = str(agent.get("action_mode", AppConfig.agent_action_mode)).lower()
+    if action_mode not in {"dry_run", "disabled"}:
+        errors.append("agent.action_mode must be either 'dry_run' or 'disabled'.")
+
     if paths.get("log_dir") is not None:
         warnings.append("log_dir is accepted for deployment layouts; current CLI output is stdout/stderr.")
 
@@ -239,6 +251,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
     paths = _section(data, "paths")
     recognition = _section(data, "recognition")
     runtime = _section(data, "runtime")
+    agent = _section(data, "agent")
 
     data_dir_value = paths.get("data_dir", data.get("data_dir", AppConfig.data_dir))
     faces_dir_value = paths.get(
@@ -295,4 +308,9 @@ def load_config(path: Optional[str] = None) -> AppConfig:
             runtime.get("save_unknown_faces", data.get("save_unknown_faces", AppConfig.save_unknown_faces)),
             "runtime.save_unknown_faces",
         ),
+        agent_model=str(agent.get("model", data.get("agent_model", AppConfig.agent_model))),
+        agent_base_url=str(agent.get("base_url", data.get("agent_base_url", AppConfig.agent_base_url))),
+        agent_interval_frames=int(agent.get("interval_frames", data.get("agent_interval_frames", AppConfig.agent_interval_frames))),
+        agent_max_tokens=int(agent.get("max_tokens", data.get("agent_max_tokens", AppConfig.agent_max_tokens))),
+        agent_action_mode=str(agent.get("action_mode", data.get("agent_action_mode", AppConfig.agent_action_mode))).lower(),
     )
