@@ -6,7 +6,7 @@ PiSight is an OpenCV-based face detection and recognition toolkit designed to ru
 
 ## Overview
 
-PiSight turns a Raspberry Pi plus a camera into a local edge computer vision workflow. It is useful for learning, prototyping, and portfolio-grade demos where camera frames and face samples should stay on the device instead of being uploaded to a remote recognition service.
+PiSight turns a Raspberry Pi plus a camera into a local edge computer vision workflow. It is useful for learning, prototyping, and technical demos where camera frames and face samples should stay on the device instead of being uploaded to a remote recognition service.
 
 The project is intentionally more than a single webcam script. It includes a CLI, configuration loading, dataset collection, LBPH model training, live recognition, dataset auditing, tests, and a systemd service template for Linux deployment.
 
@@ -106,6 +106,8 @@ scripts/install_pi.sh        Raspberry Pi setup helper
 systemd/pisight.service      Installable systemd service template
 tests/                       Camera-independent unit and pipeline tests
 config.example.json          Flat JSON config example
+config.example.yaml          Nested YAML config example for deployment-style paths
+LICENSE                      MIT license
 requirements.txt             Python dependencies for local development and CI
 pyproject.toml               Package metadata and console scripts
 ```
@@ -127,7 +129,7 @@ sudo apt install -y python3 python3-venv python3-pip python3-opencv python3-nump
 python3 -m venv .venv --system-site-packages
 . .venv/bin/activate
 python -m pip install -e .
-cp examples/config.example.yaml config.yaml
+cp config.example.yaml config.yaml
 ```
 
 On a development machine without camera access, install dependencies and run tests:
@@ -173,9 +175,9 @@ camera:
   fps: 15
 
 paths:
-  dataset_dir: "./data/faces"
-  model_path: "./data/model.yml"
-  labels_path: "./data/labels.json"
+  dataset_dir: "./data/dataset"
+  model_path: "./data/models/face_model.yml"
+  labels_path: "./data/models/labels.json"
   log_dir: "./logs"
 
 recognition:
@@ -316,4 +318,6 @@ This project includes the local OpenCV workflow, CLI commands, config loading, d
 
 ## License
 
-No license file is currently included. Add a license before distributing or reusing the project outside personal portfolio/demo use.
+PiSight is released under the MIT License. See [LICENSE](LICENSE).
+
+The repository includes a local MIT license file so GitHub and downstream users can detect the project license directly. The MIT licensing approach is compatible with the hosted MIT license pattern described by [remy/mit-license](https://github.com/remy/mit-license).

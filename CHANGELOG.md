@@ -9,8 +9,9 @@ All notable changes to this project will be documented in this file.
 - Expanded documentation for architecture, Raspberry Pi setup, camera setup, training, recognition, systemd and privacy model.
 - Added YAML example configuration and placeholder examples for service usage, commands, dataset structure and expected errors.
 - Added pytest-compatible tests for config validation, dataset validation, camera unavailable behavior, model loading and recognition pipeline behavior.
-- Added a CI workflow that installs dependencies, runs ruff in report mode and executes pytest without requiring real camera hardware.
+- Added a CI workflow that installs dependencies, runs ruff and executes pytest without requiring real camera hardware.
 - Added `python -m pisight` compatibility entry point for service examples.
+- Added an MIT license file and package license metadata.
 
 ### Changed
 
